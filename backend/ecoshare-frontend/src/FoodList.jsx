@@ -6,7 +6,7 @@ function FoodList() {
 
   useEffect(() => {
     axios
-      .get("http://localhost:5000/api/food")
+      .get("https://ecoshare-ai.onrender.com/api/food")
       .then((res) => setFoods(res.data))
       .catch((err) => console.log(err));
   }, []);

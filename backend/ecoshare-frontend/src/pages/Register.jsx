@@ -15,7 +15,7 @@ function Register() {
 
     try {
       const res = await axios.post(
-        "http://localhost:5000/api/users/register",
+        "https://ecoshare-ai.onrender.com/api/users/register",
         {
           name,
           email,

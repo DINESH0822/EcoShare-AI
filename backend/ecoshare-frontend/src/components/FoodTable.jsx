@@ -17,7 +17,7 @@ function FoodTable() {
 
   useEffect(() => {
     axios
-      .get("http://localhost:5000/api/food")
+      .get("https://ecoshare-ai.onrender.com/api/food")
       .then((res) => {
         setFoods(res.data);
         setLoading(false);
@@ -28,7 +28,7 @@ function FoodTable() {
       });
 
     axios
-      .get("http://localhost:5000/api/ngo")
+      .get("https://ecoshare-ai.onrender.com/api/ngo")
       .then((res) => setNgos(res.data))
       .catch((err) => console.log(err));
   }, []);
@@ -36,7 +36,7 @@ function FoodTable() {
   const claimFood = async (foodId) => {
     try {
       await axios.post(
-        "http://localhost:5000/api/claim",
+        "https://ecoshare-ai.onrender.com/api/claim",
         {
           foodId,
           ngoName: "Helping Hands",
@@ -64,7 +64,7 @@ function FoodTable() {
 
     try {
       await axios.delete(
-        `http://localhost:5000/api/food/${foodId}`
+        `https://ecoshare-ai.onrender.com/api/food/${foodId}`
       );
 
       toast.success(

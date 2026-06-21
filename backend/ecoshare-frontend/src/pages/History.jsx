@@ -7,7 +7,7 @@ function History() {
 
   useEffect(() => {
     axios
-      .get("http://localhost:5000/api/history")
+      .get("https://ecoshare-ai.onrender.com/api/history")
       .then((res) => setHistory(res.data))
       .catch((err) => console.log(err));
   }, []);

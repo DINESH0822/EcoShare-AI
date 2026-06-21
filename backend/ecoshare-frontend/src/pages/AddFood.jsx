@@ -24,7 +24,7 @@ function AddFood() {
 
     try {
       await axios.post(
-        "http://localhost:5000/api/food",
+        "https://ecoshare-ai.onrender.com/api/food",
         formData
       );
 

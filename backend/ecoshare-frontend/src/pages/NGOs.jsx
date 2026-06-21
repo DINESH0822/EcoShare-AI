@@ -13,7 +13,7 @@ function NGOs() {
 
   useEffect(() => {
     axios
-      .get("http://localhost:5000/api/ngo")
+      .get("https://ecoshare-ai.onrender.com/api/ngo")
       .then((res) => setNgos(res.data))
       .catch((err) => console.log(err));
   }, []);
@@ -27,7 +27,7 @@ function NGOs() {
 
     try {
       await axios.delete(
-        `http://localhost:5000/api/ngo/${ngoId}`
+        `https://ecoshare-ai.onrender.com/api/ngo/${ngoId}`
       );
 
       alert("NGO Deleted Successfully");

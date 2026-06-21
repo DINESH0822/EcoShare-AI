@@ -24,7 +24,7 @@ function AddNGO() {
 
     try {
       await axios.post(
-        "http://localhost:5000/api/ngo",
+        "https://ecoshare-ai.onrender.com/api/ngo",
         formData
       );
 

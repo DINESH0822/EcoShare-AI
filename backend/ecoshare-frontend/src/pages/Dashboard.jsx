@@ -11,7 +11,7 @@ function Dashboard() {
 
   useEffect(() => {
     axios
-      .get("http://localhost:5000/api/food")
+      .get("https://ecoshare-ai.onrender.com/api/food")
       .then((res) => {
         setFoodCount(res.data.length);
 
@@ -24,7 +24,7 @@ function Dashboard() {
       .catch((err) => console.log(err));
 
     axios
-      .get("http://localhost:5000/api/ngo")
+      .get("https://ecoshare-ai.onrender.com/api/ngo")
       .then((res) => {
         setNgoCount(res.data.length);
       })
