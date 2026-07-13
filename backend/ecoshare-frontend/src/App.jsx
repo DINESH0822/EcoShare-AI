@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { Toaster } from "react-hot-toast";
 
 import Dashboard from "./pages/Dashboard";
 import AddFood from "./pages/AddFood";
@@ -14,8 +15,24 @@ import RoleRoute from "./components/RoleRoute";
 function App() {
   return (
     <BrowserRouter>
-      <Routes>
+      <Toaster
+        position="top-right"
+        toastOptions={{
+          duration: 3500,
+          style: {
+            background: "#0d1f3c",
+            color: "#f0f9ff",
+            border: "1px solid rgba(255,255,255,0.08)",
+            borderRadius: "10px",
+            fontFamily: "'Inter', sans-serif",
+            fontSize: "0.88rem",
+            fontWeight: "600",
+            boxShadow: "0 8px 32px rgba(0,0,0,0.4)",
+          },
+        }}
+      />
 
+      <Routes>
         {/* Public Routes */}
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
@@ -35,9 +52,7 @@ function App() {
           path="/add-food"
           element={
             <ProtectedRoute>
-              <RoleRoute
-                allowedRoles={["Admin", "Donor"]}
-              >
+              <RoleRoute allowedRoles={["Admin", "Donor"]}>
                 <AddFood />
               </RoleRoute>
             </ProtectedRoute>
@@ -69,15 +84,12 @@ function App() {
           path="/add-ngo"
           element={
             <ProtectedRoute>
-              <RoleRoute
-                allowedRoles={["Admin"]}
-              >
+              <RoleRoute allowedRoles={["Admin"]}>
                 <AddNGO />
               </RoleRoute>
             </ProtectedRoute>
           }
         />
-
       </Routes>
     </BrowserRouter>
   );
