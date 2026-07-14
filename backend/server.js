@@ -13,6 +13,7 @@ const foodRoutes = require("./routes/foodRoutes");
 const ngoRoutes = require("./routes/ngoRoutes");
 const claimRoutes = require("./routes/claimRoutes");
 const historyRoutes = require("./routes/historyRoutes");
+const configRoutes = require("./routes/configRoutes");
 
 const app = express();
 
@@ -29,6 +30,7 @@ app.use("/api/food", foodRoutes);
 app.use("/api/ngo", ngoRoutes);
 app.use("/api/claim", claimRoutes);
 app.use("/api/history", historyRoutes);
+app.use("/api/config", configRoutes);
 
 // Home Route
 app.get("/", (req, res) => {

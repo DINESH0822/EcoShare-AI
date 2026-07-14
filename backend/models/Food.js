@@ -24,6 +24,54 @@ const foodSchema = mongoose.Schema(
 
     location: {
       type: String,
+      required: false
+    },
+
+    phone: {
+      type: String,
+      required: true
+    },
+
+    phoneVerified: {
+      type: Boolean,
+      default: false
+    },
+
+    phoneVerificationTime: {
+      type: Date
+    },
+
+    firebaseUid: {
+      type: String
+    },
+
+    address: {
+      type: String,
+      required: true
+    },
+
+    city: {
+      type: String,
+      required: true
+    },
+
+    state: {
+      type: String,
+      required: true
+    },
+
+    pincode: {
+      type: String,
+      required: true
+    },
+
+    latitude: {
+      type: Number,
+      required: true
+    },
+
+    longitude: {
+      type: Number,
       required: true
     },
 

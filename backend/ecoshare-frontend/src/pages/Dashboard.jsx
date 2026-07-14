@@ -3,31 +3,37 @@ import axios from "axios";
 import FoodTable from "../components/FoodTable";
 import Navbar from "../components/Navbar";
 import DashboardChart from "../components/DashboardChart";
+import DashboardMap from "../components/DashboardMap";
 import { Link } from "react-router-dom";
 
 function Dashboard() {
-  const [foodCount, setFoodCount] = useState(0);
-  const [ngoCount, setNgoCount] = useState(0);
-  const [claimedCount, setClaimedCount] = useState(0);
+  const [foods, setFoods] = useState([]);
+  const [ngos, setNgos] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const userInfo = JSON.parse(localStorage.getItem("userInfo"));
   const userRole = userInfo?.role;
 
   useEffect(() => {
+    const baseUrl = window.location.hostname === "localhost" 
+      ? "http://localhost:5000" 
+      : "https://ecoshare-ai.onrender.com";
+
     Promise.all([
-      axios.get("https://ecoshare-ai.onrender.com/api/food"),
-      axios.get("https://ecoshare-ai.onrender.com/api/ngo"),
+      axios.get(`${baseUrl}/api/food`),
+      axios.get(`${baseUrl}/api/ngo`),
     ])
       .then(([foodRes, ngoRes]) => {
-        setFoodCount(foodRes.data.length);
-        setClaimedCount(foodRes.data.filter((f) => f.status === "Claimed").length);
-        setNgoCount(ngoRes.data.length);
+        setFoods(foodRes.data);
+        setNgos(ngoRes.data);
       })
       .catch(console.error)
       .finally(() => setLoading(false));
   }, []);
 
+  const foodCount = foods.length;
+  const claimedCount = foods.filter((f) => f.status === "Claimed").length;
+  const ngoCount = ngos.length;
   const availableCount = foodCount - claimedCount;
   const claimRate = foodCount > 0 ? Math.round((claimedCount / foodCount) * 100) : 0;
 
@@ -78,7 +84,7 @@ function Dashboard() {
 
         {/* Hero header */}
         <div className="fade-in" style={{ marginBottom: "36px" }}>
-          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", flexWrap: "wrap", gap: "16px" }}>
+          <div style={{ display: "flex", alignItems: "flex-start", justifycontent: "space-between", flexWrap: "wrap", gap: "16px" }}>
             <div>
               <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "8px" }}>
                 <span style={{
@@ -105,7 +111,7 @@ function Dashboard() {
             </div>
 
             {(userRole === "Admin" || userRole === "Donor") && (
-              <Link to="/add-food" style={{ textDecoration: "none" }}>
+              <Link to="/add-food" style={{ textDecoration: "none", marginLeft: "auto" }}>
                 <button className="btn-primary" style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                   🍱 Add Food Donation
                 </button>
@@ -130,8 +136,8 @@ function Dashboard() {
               {stats.map((stat, i) => (
                 <Link key={stat.label} to={stat.link} style={{ textDecoration: "none" }}>
                   <div
-                    className={`stat-card ${stat.color} fade-in fade-in-delay-${i + 1}`}
-                    style={{ cursor: "pointer" }}
+                    className={`stat-card ${stat.color} fade-in` }
+                    style={{ cursor: "pointer", animationDelay: `${i * 0.1}s` }}
                   >
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "16px" }}>
                       <div style={{
@@ -192,6 +198,10 @@ function Dashboard() {
               </Link>
             </div>
 
+            {/* Live Interactive Unified Map */}
+            <DashboardMap foods={foods} ngos={ngos} />
+
+            {/* Donation Grid cards list */}
             <FoodTable />
 
             <DashboardChart

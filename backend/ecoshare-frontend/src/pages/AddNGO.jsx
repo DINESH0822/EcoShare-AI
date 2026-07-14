@@ -1,6 +1,7 @@
 import { useState } from "react";
 import axios from "axios";
 import Navbar from "../components/Navbar";
+import LocationPicker from "../components/LocationPicker";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 
@@ -10,7 +11,12 @@ function AddNGO() {
     contactPerson: "",
     phone: "",
     email: "",
-    location: "",
+    address: "",
+    city: "",
+    state: "",
+    pincode: "",
+    latitude: null,
+    longitude: null,
     capacity: "",
   });
   const [loading, setLoading] = useState(false);
@@ -20,26 +26,64 @@ function AddNGO() {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+  const handleLocationChange = ({ address, city, state, pincode, latitude, longitude }) => {
+    setFormData((prev) => ({
+      ...prev,
+      address,
+      city: city || "",
+      state: state || "",
+      pincode: pincode || "",
+      latitude,
+      longitude,
+    }));
+  };
+
   const submitNGO = async (e) => {
     e.preventDefault();
+
+    if (!formData.address || !formData.latitude || !formData.longitude) {
+      toast.error("Please pin the NGO location on the map.");
+      return;
+    }
+
     setLoading(true);
 
     try {
-      await axios.post("https://ecoshare-ai.onrender.com/api/ngo", formData);
+      const baseUrl = window.location.hostname === "localhost" 
+        ? "http://localhost:5000" 
+        : "https://ecoshare-ai.onrender.com";
+
+      await axios.post(`${baseUrl}/api/ngo`, formData);
       toast.success("🏢 NGO registered successfully!", {
         style: { background: "#0d1f3c", color: "#34d399", border: "1px solid rgba(16,185,129,0.3)" },
       });
-      setFormData({ ngoName: "", contactPerson: "", phone: "", email: "", location: "", capacity: "" });
+      
+      setFormData({
+        ngoName: "",
+        contactPerson: "",
+        phone: "",
+        email: "",
+        address: "",
+        city: "",
+        state: "",
+        pincode: "",
+        latitude: null,
+        longitude: null,
+        capacity: "",
+      });
+
       setTimeout(() => navigate("/ngos"), 1500);
     } catch (err) {
       console.error(err);
-      toast.error("Failed to register NGO", {
+      toast.error(err.response?.data?.message || "Failed to register NGO", {
         style: { background: "#0d1f3c", color: "#f87171", border: "1px solid rgba(239,68,68,0.3)" },
       });
     } finally {
       setLoading(false);
     }
   };
+
+  const isSubmitDisabled = loading || !formData.address || !formData.latitude;
 
   return (
     <div className="eco-bg" style={{ minHeight: "100vh", position: "relative", zIndex: 1 }}>
@@ -109,7 +153,7 @@ function AddNGO() {
                   id="ngo-phone"
                   type="tel"
                   name="phone"
-                  placeholder="+91 xxx xxx xxxx"
+                  placeholder="e.g. 9876543210"
                   value={formData.phone}
                   onChange={handleChange}
                   className="eco-input"
@@ -132,33 +176,34 @@ function AddNGO() {
               />
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: "16px" }}>
-              <div>
-                <label className="eco-label" htmlFor="ngo-location">📍 Location / Area</label>
-                <input
-                  id="ngo-location"
-                  type="text"
-                  name="location"
-                  placeholder="City or neighborhood"
-                  value={formData.location}
-                  onChange={handleChange}
-                  className="eco-input"
-                  required
-                />
-              </div>
-              <div>
-                <label className="eco-label" htmlFor="ngo-capacity">👥 Capacity</label>
-                <input
-                  id="ngo-capacity"
-                  type="number"
-                  name="capacity"
-                  placeholder="Servings/day"
-                  value={formData.capacity}
-                  onChange={handleChange}
-                  className="eco-input"
-                  required
-                />
-              </div>
+            {/* GPS Location Picker */}
+            <div>
+              <label className="eco-label">📍 Pin NGO HQ Location</label>
+              <LocationPicker 
+                value={{
+                  latitude: formData.latitude,
+                  longitude: formData.longitude,
+                  address: formData.address,
+                  city: formData.city,
+                  state: formData.state,
+                  pincode: formData.pincode
+                }}
+                onChange={handleLocationChange} 
+              />
+            </div>
+
+            <div>
+              <label className="eco-label" htmlFor="ngo-capacity">👥 Daily Servings Capacity</label>
+              <input
+                id="ngo-capacity"
+                type="number"
+                name="capacity"
+                placeholder="Servings/day"
+                value={formData.capacity}
+                onChange={handleChange}
+                className="eco-input"
+                required
+              />
             </div>
 
             <div style={{
@@ -172,7 +217,7 @@ function AddNGO() {
             }}>
               <span style={{ fontSize: "18px" }}>🤖</span>
               <p style={{ color: "#93c5fd", fontSize: "0.83rem", margin: 0 }}>
-                AI will automatically match food donations from nearby locations to this NGO based on capacity and area.
+                AI will automatically match food donations from nearby locations to this NGO based on capacity and distance.
               </p>
             </div>
 
@@ -180,11 +225,12 @@ function AddNGO() {
               <button
                 type="submit"
                 className="btn-secondary"
-                disabled={loading}
+                disabled={isSubmitDisabled}
                 style={{
                   flex: 1, padding: "14px", fontSize: "1rem",
-                  opacity: loading ? 0.7 : 1,
+                  opacity: isSubmitDisabled ? 0.7 : 1,
                   display: "flex", alignItems: "center", justifyContent: "center", gap: "8px",
+                  cursor: isSubmitDisabled ? "not-allowed" : "pointer"
                 }}
               >
                 {loading ? (

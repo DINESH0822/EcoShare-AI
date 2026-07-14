@@ -24,6 +24,39 @@ const ngoSchema = mongoose.Schema(
 
     location: {
       type: String,
+      required: false
+    },
+
+    address: {
+      type: String,
+      required: true
+    },
+
+    // City parsed from GPS / Places Autocomplete
+    city: {
+      type: String,
+      default: ""
+    },
+
+    // State parsed from GPS / Places Autocomplete
+    state: {
+      type: String,
+      default: ""
+    },
+
+    // Pincode parsed from GPS / Places Autocomplete
+    pincode: {
+      type: String,
+      default: ""
+    },
+
+    latitude: {
+      type: Number,
+      required: true
+    },
+
+    longitude: {
+      type: Number,
       required: true
     },
 

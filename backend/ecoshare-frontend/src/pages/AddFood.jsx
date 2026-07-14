@@ -1,6 +1,8 @@
 import { useState } from "react";
 import axios from "axios";
 import Navbar from "../components/Navbar";
+import PhoneVerification from "../components/PhoneVerification";
+import LocationPicker from "../components/LocationPicker";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 
@@ -10,9 +12,19 @@ function AddFood() {
     quantity: "",
     donorName: "",
     donorType: "",
-    location: "",
     expiryTime: "",
+    address: "",
+    city: "",
+    state: "",
+    pincode: "",
+    latitude: null,
+    longitude: null,
+    phone: "",
+    phoneVerified: false,
+    phoneVerificationTime: null,
+    firebaseUid: "",
   });
+  
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
@@ -20,20 +32,77 @@ function AddFood() {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+  const handlePhoneVerify = ({ phone, isVerified, verificationTime, firebaseUid }) => {
+    setFormData((prev) => ({
+      ...prev,
+      phone,
+      phoneVerified: isVerified,
+      phoneVerificationTime: verificationTime,
+      firebaseUid,
+    }));
+  };
+
+  const handleLocationChange = ({ address, city, state, pincode, latitude, longitude }) => {
+    setFormData((prev) => ({
+      ...prev,
+      address,
+      city,
+      state,
+      pincode,
+      latitude,
+      longitude,
+    }));
+  };
+
   const submitFood = async (e) => {
     e.preventDefault();
+
+    if (!formData.phoneVerified) {
+      toast.error("Please verify your phone number via OTP first.");
+      return;
+    }
+
+    if (!formData.address || !formData.latitude || !formData.longitude) {
+      toast.error("Please select a valid location on the map.");
+      return;
+    }
+
     setLoading(true);
 
     try {
-      await axios.post("https://ecoshare-ai.onrender.com/api/food", formData);
+      const baseUrl = window.location.hostname === "localhost" 
+        ? "http://localhost:5000" 
+        : "https://ecoshare-ai.onrender.com";
+
+      await axios.post(`${baseUrl}/api/food`, formData);
+      
       toast.success("🍱 Food donation added successfully!", {
         style: { background: "#0d1f3c", color: "#34d399", border: "1px solid rgba(16,185,129,0.3)" },
       });
-      setFormData({ foodName: "", quantity: "", donorName: "", donorType: "", location: "", expiryTime: "" });
+
+      // Clear form
+      setFormData({
+        foodName: "",
+        quantity: "",
+        donorName: "",
+        donorType: "",
+        expiryTime: "",
+        address: "",
+        city: "",
+        state: "",
+        pincode: "",
+        latitude: null,
+        longitude: null,
+        phone: "",
+        phoneVerified: false,
+        phoneVerificationTime: null,
+        firebaseUid: "",
+      });
+
       setTimeout(() => navigate("/"), 1500);
     } catch (err) {
       console.error(err);
-      toast.error("Failed to add food", {
+      toast.error(err.response?.data?.message || "Failed to add food donation", {
         style: { background: "#0d1f3c", color: "#f87171", border: "1px solid rgba(239,68,68,0.3)" },
       });
     } finally {
@@ -44,10 +113,11 @@ function AddFood() {
   const fields = [
     { name: "foodName", label: "Food Name", type: "text", placeholder: "e.g. Rice, Vegetables, Bread", icon: "🍱" },
     { name: "quantity", label: "Quantity (servings/kg)", type: "number", placeholder: "e.g. 50", icon: "⚖️" },
-    { name: "donorName", label: "Donor Name", type: "text", placeholder: "Your name or organization", icon: "👤" },
+    { name: "donorName", label: "Donor Name", type: "text", placeholder: "Your name or organization (Hotel/Restaurant)", icon: "👤" },
     { name: "donorType", label: "Donor Type", type: "text", placeholder: "e.g. Restaurant, Individual, Hotel", icon: "🏪" },
-    { name: "location", label: "Pickup Location", type: "text", placeholder: "City or area name", icon: "📍" },
   ];
+
+  const isSubmitDisabled = loading || !formData.phoneVerified || !formData.address || !formData.latitude;
 
   return (
     <div className="eco-bg" style={{ minHeight: "100vh", position: "relative", zIndex: 1 }}>
@@ -94,11 +164,12 @@ function AddFood() {
           }}>
             <span style={{ fontSize: "20px" }}>🤖</span>
             <p style={{ color: "#c4b5fd", fontSize: "0.85rem", margin: 0, lineHeight: 1.5 }}>
-              <strong>AI Matching Active:</strong> Our system will automatically suggest the nearest NGO based on location and food type.
+              <strong>AI Matching Active:</strong> Our system will automatically suggest the nearest NGO based on GPS coordinates and travel distance.
             </p>
           </div>
 
-          <form onSubmit={submitFood} style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
+          <form onSubmit={submitFood} style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+            {/* Standard fields */}
             {fields.map((field) => (
               <div key={field.name}>
                 <label className="eco-label" htmlFor={`af-${field.name}`}>
@@ -117,6 +188,18 @@ function AddFood() {
               </div>
             ))}
 
+            {/* OTP Verification Field */}
+            <PhoneVerification onVerify={handlePhoneVerify} />
+
+            {/* GPS Location Picker */}
+            <div>
+              <label className="eco-label">📍 Pin Donation Location</label>
+              <LocationPicker 
+                value={{ latitude: formData.latitude, longitude: formData.longitude, address: formData.address, city: formData.city, state: formData.state, pincode: formData.pincode }}
+                onChange={handleLocationChange} 
+              />
+            </div>
+
             {/* Expiry datetime */}
             <div>
               <label className="eco-label" htmlFor="af-expiryTime">
@@ -133,15 +216,17 @@ function AddFood() {
               />
             </div>
 
-            <div style={{ display: "flex", gap: "12px", marginTop: "8px" }}>
+            {/* Submit & Cancel Buttons */}
+            <div style={{ display: "flex", gap: "12px", marginTop: "12px" }}>
               <button
                 type="submit"
                 className="btn-primary"
-                disabled={loading}
+                disabled={isSubmitDisabled}
                 style={{
                   flex: 1, padding: "14px", fontSize: "1rem",
-                  opacity: loading ? 0.7 : 1,
+                  opacity: isSubmitDisabled ? 0.6 : 1,
                   display: "flex", alignItems: "center", justifyContent: "center", gap: "8px",
+                  cursor: isSubmitDisabled ? "not-allowed" : "pointer"
                 }}
               >
                 {loading ? (
@@ -184,7 +269,7 @@ function AddFood() {
         }}>
           {[
             { icon: "📦", title: "Pack properly", desc: "Ensure food is sealed and safe for transport" },
-            { icon: "📍", title: "Location accuracy", desc: "Accurate location helps NGOs reach you faster" },
+            { icon: "📍", title: "GPS Verification", desc: "Pinning location accurately ensures fast NGO pickups" },
             { icon: "⏱️", title: "Realistic expiry", desc: "Set accurate expiry to avoid waste" },
           ].map((tip) => (
             <div key={tip.title} style={{
