@@ -13,8 +13,8 @@ const { protect } = require("../middleware/authMiddleware");
 
 router.get("/", getFoods);
 router.get("/trace/:traceabilityId", getFoodByTraceabilityId);
-router.get("/:id", getFoodById);
 router.get("/:id/match", getMatchesForFood);
+router.get("/:id", getFoodById);
 
 router.post("/", protect, createFood);
 router.delete("/:id", protect, deleteFood);

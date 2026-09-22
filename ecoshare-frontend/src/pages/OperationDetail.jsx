@@ -7,7 +7,7 @@ import EcoBot from "../components/EcoBot";
 import StatusPipeline from "../components/StatusPipeline";
 import DashboardMap from "../components/DashboardMap";
 import { useDemo } from "../config/DemoContext";
-import { ArrowLeft, Truck, Thermometer, ShieldCheck, CheckCircle2, Clock, MapPin, Camera } from "lucide-react";
+import { ArrowLeft, Thermometer, Clock } from "lucide-react";
 import toast from "react-hot-toast";
 
 export default function OperationDetail() {
@@ -17,6 +17,8 @@ export default function OperationDetail() {
 
   const [operation, setOperation] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [notFound, setNotFound] = useState(false);
   const [tempInput, setTempInput] = useState("65");
   const [updating, setUpdating] = useState(false);
 
@@ -26,6 +28,9 @@ export default function OperationDetail() {
 
   const fetchOperationDetail = async () => {
     setLoading(true);
+    setError("");
+    setNotFound(false);
+
     if (isDemoMode) {
       setOperation({
         _id: id,
@@ -51,9 +56,21 @@ export default function OperationDetail() {
 
     try {
       const res = await axios.get(`/api/operations/${id}`);
-      setOperation(res.data.data);
+      const detail = res.data?.data ?? res.data;
+      if (!detail) {
+        setOperation(null);
+        setNotFound(true);
+        return;
+      }
+      setOperation(detail);
     } catch (err) {
-      toast.error("Failed to load operation details");
+      const status = err?.response?.status;
+      setOperation(null);
+      setNotFound(status === 404);
+      setError(status === 404 ? "Rescue operation not found." : "Unable to load rescue operation details.");
+      if (status !== 404) {
+        toast.error("Unable to load rescue operation details.");
+      }
     } finally {
       setLoading(false);
     }
@@ -62,7 +79,7 @@ export default function OperationDetail() {
   const handleStatusUpdate = async (nextStatus) => {
     setUpdating(true);
     try {
-      const res = await axios.patch(`/api/operations/${id}/status`, {
+      await axios.patch(`/api/operations/${id}/status`, {
         status: nextStatus,
         temperatureAtPickup: parseFloat(tempInput),
         note: `Status updated to ${nextStatus}`
@@ -76,7 +93,7 @@ export default function OperationDetail() {
     }
   };
 
-  if (loading || !operation) {
+  if (loading) {
     return (
       <div className="eco-bg min-h-screen">
         <Navbar />
@@ -84,6 +101,22 @@ export default function OperationDetail() {
           <div className="spinner mx-auto" />
           <p className="text-xs text-slate-400 mt-3">Loading rescue operation details...</p>
         </div>
+      </div>
+    );
+  }
+
+  if (error || notFound || !operation) {
+    return (
+      <div className="eco-bg min-h-screen">
+        <DemoModeBanner />
+        <Navbar />
+        <main className="page-container">
+          <div className="bg-[#101D2D] border border-slate-800 rounded-2xl p-8 text-center space-y-4 max-w-xl mx-auto">
+            <h1 className="text-page-title">{notFound ? "Rescue operation not found" : "Unable to load rescue operation details"}</h1>
+            <p className="text-body">{error || "The rescue operation you are trying to open is missing or the server could not return it."}</p>
+            <button onClick={() => navigate("/operations")} className="btn-primary">Return to operations</button>
+          </div>
+        </main>
       </div>
     );
   }
@@ -101,7 +134,6 @@ export default function OperationDetail() {
           <ArrowLeft className="w-4 h-4" /> Back to Operations
         </button>
 
-        {/* Banner */}
         <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div>
             <span className="text-xs font-mono text-sky-400 uppercase tracking-wider block mb-1">
@@ -109,13 +141,12 @@ export default function OperationDetail() {
             </span>
             <h1 className="text-2xl font-extrabold text-white">{operation.foodId?.foodName || "Food Rescue Operation"}</h1>
             <p className="text-xs text-slate-400 mt-1 flex items-center gap-2">
-              <span>Assigned NGO: <strong className="text-white">{operation.assignedNgoName}</strong></span>
+              <span>Assigned NGO: <strong className="text-white">{operation.assignedNgoName || operation.ngoName || "Pending assignment"}</strong></span>
               <span>•</span>
               <span>Status: <strong className="text-sky-400 uppercase">{operation.status}</strong></span>
             </p>
           </div>
 
-          {/* Pipeline Action Controls */}
           <div className="flex flex-wrap gap-2">
             {operation.status !== "completed" && (
               <>
@@ -145,13 +176,9 @@ export default function OperationDetail() {
           </div>
         </div>
 
-        {/* Pipeline Progress */}
         <StatusPipeline currentStatus={operation.status} />
 
-        {/* Specs Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          
-          {/* Temperature Log Input */}
           <div className="stat-card space-y-3">
             <h3 className="text-sm font-bold text-white flex items-center gap-2">
               <Thermometer className="w-4 h-4 text-emerald-400" /> Pickup Temperature Verification
@@ -179,7 +206,6 @@ export default function OperationDetail() {
             )}
           </div>
 
-          {/* Timeline Events */}
           <div className="stat-card md:col-span-2 space-y-3">
             <h3 className="text-sm font-bold text-white flex items-center gap-2">
               <Clock className="w-4 h-4 text-sky-400" /> Operational Timeline
@@ -193,10 +219,8 @@ export default function OperationDetail() {
               ))}
             </div>
           </div>
-
         </div>
 
-        {/* Dispatch Map */}
         {operation.foodId && <DashboardMap foods={[operation.foodId]} selectedFood={operation.foodId} />}
       </main>
 
