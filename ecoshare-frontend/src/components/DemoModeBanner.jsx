@@ -5,6 +5,10 @@ import { useDemo } from "../config/DemoContext";
 export default function DemoModeBanner() {
   const { isDemoMode, toggleDemoMode } = useDemo();
 
+  if (!isDemoMode) {
+    return null;
+  }
+
   return (
     <div className="demo-banner">
       <div className="demo-banner__left">

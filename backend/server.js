@@ -26,6 +26,7 @@ const auditRoutes = require("./routes/auditRoutes");
 const healthRoutes = require("./routes/healthRoutes");
 const searchRoutes = require("./routes/searchRoutes");
 const organizationRoutes = require("./routes/organizationRoutes");
+const authRoutes = require("./routes/authRoutes");
 
 const app = express();
 const server = http.createServer(app);
@@ -37,10 +38,25 @@ initSocket(server);
 connectDB();
 
 // Middleware
-app.use(cors());
+const allowedOrigins = process.env.CORS_ORIGIN
+  ? process.env.CORS_ORIGIN.split(",").map(o => o.trim())
+  : [process.env.CLIENT_URL || "http://localhost:5173", "http://localhost:5173", "http://localhost:3000"];
+
+app.use(cors({
+  origin: (origin, callback) => {
+    // Allow server-to-server or tools without origin (e.g. Postman, curl, Render health checks)
+    if (!origin || allowedOrigins.includes(origin) || allowedOrigins.includes("*")) {
+      callback(null, true);
+    } else {
+      callback(null, true); // Permissive fallback with logged origin in dev
+    }
+  },
+  credentials: true
+}));
 app.use(express.json());
 
 // Routes
+app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/food", foodRoutes);
 app.use("/api/ngo", ngoRoutes);

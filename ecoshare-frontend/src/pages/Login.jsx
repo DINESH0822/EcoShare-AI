@@ -1,12 +1,21 @@
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useState, useMemo } from "react";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
 import { useAuth } from "../config/AuthContext";
 import toast from "react-hot-toast";
 import { motion } from "framer-motion";
 import { Eye, EyeOff, Leaf, Mail, Lock, ArrowRight } from "lucide-react";
 
-function Login() {
+function Login({ role: propRole }) {
+  const location = useLocation();
+  const defaultRole = useMemo(() => {
+    const path = location.pathname;
+    if (path.includes("/donor/")) return "Donor";
+    if (path.includes("/ngo/")) return "NGO";
+    if (path.includes("/admin/")) return "Admin";
+    return propRole || "Donor";
+  }, [location.pathname, propRole]);
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -18,10 +27,22 @@ function Login() {
     e.preventDefault();
     setLoading(true);
     try {
-      const res = await axios.post(`${API_BASE}/api/users/login`, { email, password });
-      login(res.data);
-      toast.success(`Welcome back, ${res.data.name}!`);
-      navigate("/");
+      const endpoint = defaultRole === "NGO"
+        ? `${API_BASE}/api/auth/ngo/login`
+        : defaultRole === "Admin"
+          ? `${API_BASE}/api/users/login`
+          : `${API_BASE}/api/auth/donor/login`;
+
+      const payload = defaultRole === "Admin"
+        ? { email, password }
+        : { email, password };
+
+      const res = await axios.post(endpoint, payload);
+      const authData = res.data?.data || res.data;
+      const user = authData?.user || authData;
+      login({ ...user, token: authData?.token || user?.token });
+      toast.success(`Welcome back, ${user.name || "there"}!`);
+      navigate(defaultRole === "NGO" ? "/ngo/dashboard" : defaultRole === "Admin" ? "/admin" : "/dashboard");
     } catch (err) {
       toast.error(err.response?.data?.message || "Invalid email or password");
     } finally {

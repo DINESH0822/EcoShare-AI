@@ -14,6 +14,26 @@ const INDIA_BOUNDS = {
 };
 
 // Create Food Donation
+const normalizeFoodCategory = (value) => {
+  const category = String(value || "cooked_meals").trim();
+  return (Food.FOOD_CATEGORIES || []).includes(category) ? category : "cooked_meals";
+};
+
+const normalizePriority = (value, isEmergency) => {
+  const priorityMap = {
+    normal: "medium",
+    emergency: "urgent",
+    low: "low",
+    medium: "medium",
+    high: "high",
+    urgent: "urgent",
+    critical: "critical"
+  };
+
+  const normalized = String(value || (isEmergency ? "emergency" : "normal")).trim().toLowerCase();
+  return priorityMap[normalized] || (isEmergency ? "urgent" : "medium");
+};
+
 const createFood = async (req, res) => {
   try {
     const {
@@ -33,6 +53,8 @@ const createFood = async (req, res) => {
       latitude,
       longitude,
       category,
+      foodCategory,
+      priority,
       cookedTime,
       storageCondition,
       temperatureChecked,
@@ -42,6 +64,9 @@ const createFood = async (req, res) => {
       pickupWindowStart,
       pickupWindowEnd
     } = req.body;
+
+    const normalizedCategory = normalizeFoodCategory(category || foodCategory);
+    const normalizedPriority = normalizePriority(priority, Boolean(isEmergency));
 
     // Optional phone validation — if provided and phoneVerified is true, validate clean phone
     let cleanPhone = "";
@@ -91,19 +116,24 @@ const createFood = async (req, res) => {
       longitude: !isNaN(lng) ? lng : 72.8777,
       donor: donorId,
       donorId,
-      category: category || "cooked_meals",
+      foodCategory: normalizedCategory,
+      category: normalizedCategory,
       cookedTime: cookedTime ? new Date(cookedTime) : new Date(),
-      storageCondition: storageCondition || "ambient",
+      storageTemperature: storageCondition || "room_temperature",
       temperatureChecked: Boolean(temperatureChecked),
-      allergenFlags: Array.isArray(allergenFlags) ? allergenFlags : [],
+      allergens: Array.isArray(allergenFlags) ? allergenFlags : [],
       isEmergency: Boolean(isEmergency),
-      priority: initialPriority,
+      priority: normalizedPriority,
+      priorityReason: isEmergency ? "Emergency food rescue requested" : "Standard donation priority",
       priorityScore,
+      description: notes || "",
+      foodSafetyNotes: notes || "",
       notes: notes || "",
+      lifecycleState: "published",
       pickupWindowStart: pickupWindowStart ? new Date(pickupWindowStart) : new Date(),
       pickupWindowEnd: pickupWindowEnd ? new Date(pickupWindowEnd) : (expiryTime ? new Date(expiryTime) : new Date(Date.now() + 6 * 3600000)),
+      pickupDeadline: pickupWindowEnd ? new Date(pickupWindowEnd) : (expiryTime ? new Date(expiryTime) : new Date(Date.now() + 6 * 3600000)),
       status: "Available",
-      lifecycleState: "published",
       statusHistory: [
         {
           status: "published",
@@ -145,7 +175,7 @@ const createFood = async (req, res) => {
         recipientRole: "NGO",
         title: isEmergency ? "🚨 EMERGENCY Food Donation Available!" : "New Food Donation Available! 🍱",
         message: `${food.quantity} servings of '${foodName}' in ${food.city || "your area"}. Click to view match & dispatch route.`,
-        type: isEmergency ? "emergency_food" : "new_donation"
+        type: isEmergency ? "emergency_rescue" : "donation_created"
       });
     } catch (sockErr) {}
 
@@ -167,7 +197,7 @@ const getFoods = async (req, res) => {
     const { status, category, isEmergency } = req.query;
     let filter = {};
     if (status) filter.status = status;
-    if (category) filter.category = category;
+    if (category || req.query.foodCategory) filter.foodCategory = (category || req.query.foodCategory);
     if (isEmergency !== undefined) filter.isEmergency = isEmergency === "true";
 
     const foods = await Food.find(filter).sort({ isEmergency: -1, priorityScore: -1, createdAt: -1 }).lean();

@@ -18,6 +18,7 @@ import Notifications from "./pages/Notifications";
 import AddNGO from "./pages/AddNGO";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+import Landing from "./pages/Landing";
 
 import ProtectedRoute from "./components/ProtectedRoute";
 import RoleRoute from "./components/RoleRoute";
@@ -45,14 +46,19 @@ function App() {
         />
 
         <Routes>
-          {/* Public Routes */}
+          {/* Public Landing & Auth Routes */}
+          <Route path="/" element={<Landing />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/donor/login" element={<Login role="Donor" />} />
+          <Route path="/ngo/login" element={<Login role="NGO" />} />
+          <Route path="/admin/login" element={<Login role="Admin" />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/donor/register" element={<Register role="Donor" />} />
+          <Route path="/ngo/register" element={<Register role="NGO" />} />
+          <Route path="/admin/register" element={<Register role="Admin" />} />
           <Route path="/organizations/register" element={<RegisterOrganization />} />
-
-          {/* Dashboard */}
           <Route
-            path="/"
+            path="/dashboard"
             element={
               <ProtectedRoute>
                 <Dashboard />
@@ -60,10 +66,22 @@ function App() {
             }
           />
           <Route
-            path="/dashboard"
+            path="/donor/dashboard"
             element={
               <ProtectedRoute>
-                <Dashboard />
+                <RoleRoute allowedRoles={["Donor"]}>
+                  <Dashboard />
+                </RoleRoute>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/ngo/dashboard"
+            element={
+              <ProtectedRoute>
+                <RoleRoute allowedRoles={["NGO"]}>
+                  <Dashboard />
+                </RoleRoute>
               </ProtectedRoute>
             }
           />
@@ -83,6 +101,46 @@ function App() {
             element={
               <ProtectedRoute>
                 <DonationDetail />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/donor/donations"
+            element={
+              <ProtectedRoute>
+                <RoleRoute allowedRoles={["Donor"]}>
+                  <Donations />
+                </RoleRoute>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/ngo/donations"
+            element={
+              <ProtectedRoute>
+                <RoleRoute allowedRoles={["NGO"]}>
+                  <Donations />
+                </RoleRoute>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/donor/donations/:id"
+            element={
+              <ProtectedRoute>
+                <RoleRoute allowedRoles={["Donor"]}>
+                  <DonationDetail />
+                </RoleRoute>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/ngo/donations/:id"
+            element={
+              <ProtectedRoute>
+                <RoleRoute allowedRoles={["NGO"]}>
+                  <DonationDetail />
+                </RoleRoute>
               </ProtectedRoute>
             }
           />
@@ -189,6 +247,26 @@ function App() {
             element={
               <ProtectedRoute>
                 <History />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/donor/history"
+            element={
+              <ProtectedRoute>
+                <RoleRoute allowedRoles={["Donor"]}>
+                  <History />
+                </RoleRoute>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/ngo/history"
+            element={
+              <ProtectedRoute>
+                <RoleRoute allowedRoles={["NGO"]}>
+                  <History />
+                </RoleRoute>
               </ProtectedRoute>
             }
           />

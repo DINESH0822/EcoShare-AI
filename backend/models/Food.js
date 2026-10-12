@@ -78,9 +78,15 @@ const foodSchema = mongoose.Schema(
       enum: FOOD_CATEGORIES,
       default: "cooked_meals"
     },
+    category: {
+      type: String,
+      enum: FOOD_CATEGORIES,
+      default: "cooked_meals"
+    },
     quantity: { type: Number, required: true, min: 1 },
     quantityUnit: { type: String, default: "meals" },
     description: { type: String, default: "" },
+    notes: { type: String, default: "" },
 
     // Donor info
     donorName: { type: String, required: true },
@@ -106,9 +112,15 @@ const foodSchema = mongoose.Schema(
     preparedAt: { type: Date },
     expiryTime: { type: Date, required: true },
     pickupDeadline: { type: Date },
+    pickupWindowStart: { type: Date },
+    pickupWindowEnd: { type: Date },
     storageTemperature: { type: String, default: "room_temperature" },
+    storageCondition: { type: String, default: "ambient" },
     requiresRefrigeration: { type: Boolean, default: false },
     isVegetarian: { type: Boolean, default: true },
+    temperatureChecked: { type: Boolean, default: false },
+    allergenFlags: [{ type: String }],
+    allergens: [{ type: String }],
     packagingType: {
       type: String,
       enum: ["sealed", "covered", "open", "original_packaging"],
@@ -130,7 +142,9 @@ const foodSchema = mongoose.Schema(
       enum: PRIORITY_LEVELS,
       default: "medium"
     },
+    priorityScore: { type: Number, default: 0 },
     priorityReason: { type: String, default: "" },
+    lifecycleState: { type: String, default: "published" },
 
     // Status audit trail
     statusHistory: [statusHistorySchema],

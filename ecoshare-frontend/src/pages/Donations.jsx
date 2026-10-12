@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
 import { Link } from "react-router-dom";
+import api from "../utils/api";
 import Navbar from "../components/Navbar";
 import DemoModeBanner from "../components/DemoModeBanner";
 import DataTable from "../components/DataTable";
+import ErrorState from "../components/ErrorState";
 import EcoBot from "../components/EcoBot";
 import { useDemo } from "../config/DemoContext";
 import { Search, Filter, Plus } from "lucide-react";
@@ -17,23 +18,29 @@ export default function Donations() {
   const [emergencyOnly, setEmergencyOnly] = useState(false);
   const { isDemoMode, demoDonations } = useDemo();
 
+  const [error, setError] = useState(null);
+
   useEffect(() => {
     fetchFoods();
   }, [isDemoMode]);
 
   const fetchFoods = async () => {
     setLoading(true);
+    setError(null);
     if (isDemoMode) {
       setFoods(demoDonations);
       setLoading(false);
       return;
     }
     try {
-      const res = await axios.get("/api/food");
-      setFoods(Array.isArray(res.data) ? res.data : demoDonations);
+      const res = await api.get("/api/food");
+      const data = Array.isArray(res.data) ? res.data : (res.data?.data || []);
+      setFoods(data);
     } catch (err) {
-      toast.error("Failed to load food listings");
-      setFoods(demoDonations);
+      const errorMsg = err.message || "Failed to load live food listings from backend";
+      setError(errorMsg);
+      toast.error(errorMsg);
+      setFoods([]);
     } finally {
       setLoading(false);
     }
@@ -112,6 +119,12 @@ export default function Donations() {
           <div className="bg-[var(--surface)] border border-[var(--border)] rounded-[20px] p-8 text-center text-xs text-[var(--text-secondary)]">
             Loading food listings...
           </div>
+        ) : error ? (
+          <ErrorState
+            title="Backend Connection Failed"
+            message={error}
+            onRetry={fetchFoods}
+          />
         ) : (
           <DataTable items={filteredFoods} />
         )}

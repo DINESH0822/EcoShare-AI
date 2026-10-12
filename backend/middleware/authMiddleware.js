@@ -1,20 +1,13 @@
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 
-const protect = async (req, res, next) => {
+const authenticateUser = async (req, res, next) => {
   let token;
 
-  if (
-    req.headers.authorization &&
-    req.headers.authorization.startsWith("Bearer")
-  ) {
+  if (req.headers.authorization && req.headers.authorization.startsWith("Bearer")) {
     try {
       token = req.headers.authorization.split(" ")[1];
-
-      const decoded = jwt.verify(
-        token,
-        process.env.JWT_SECRET || "mysecretkey123"
-      );
+      const decoded = jwt.verify(token, process.env.JWT_SECRET || "mysecretkey123");
 
       req.user = await User.findById(decoded.id).select("-password");
       if (!req.user) {
@@ -40,17 +33,13 @@ const protect = async (req, res, next) => {
   }
 };
 
+const protect = authenticateUser;
+
 const optionalProtect = async (req, res, next) => {
-  if (
-    req.headers.authorization &&
-    req.headers.authorization.startsWith("Bearer")
-  ) {
+  if (req.headers.authorization && req.headers.authorization.startsWith("Bearer")) {
     try {
       const token = req.headers.authorization.split(" ")[1];
-      const decoded = jwt.verify(
-        token,
-        process.env.JWT_SECRET || "mysecretkey123"
-      );
+      const decoded = jwt.verify(token, process.env.JWT_SECRET || "mysecretkey123");
       req.user = await User.findById(decoded.id).select("-password");
     } catch (error) {
       // Best-effort optional protection
@@ -59,7 +48,7 @@ const optionalProtect = async (req, res, next) => {
   next();
 };
 
-const authorize = (...roles) => {
+const requireRole = (...roles) => {
   return (req, res, next) => {
     if (!req.user || !roles.includes(req.user.role)) {
       return res.status(403).json({
@@ -72,4 +61,6 @@ const authorize = (...roles) => {
   };
 };
 
-module.exports = { protect, optionalProtect, authorize };
+const authorize = (...roles) => requireRole(...roles);
+
+module.exports = { authenticateUser, protect, optionalProtect, requireRole, authorize };

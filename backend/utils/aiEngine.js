@@ -11,6 +11,7 @@ const NGO = require("../models/NGO");
 const Food = require("../models/Food");
 const AIRecommendation = require("../models/AIRecommendation");
 const { routingProvider, haversineDistance } = require("../services/routing");
+const { runMlPrediction } = require("../services/mlService");
 
 // India geographic bounding box
 const INDIA_BOUNDS = {
@@ -266,6 +267,25 @@ const scoreCandidate = async (food, ngo, routeData) => {
   // Normalize to 0-100
   const normalizedScore = Math.min(99, Math.max(40, totalScore));
 
+  let mlPrediction = null;
+  try {
+    const mlInput = {
+      distance_km: distanceKm,
+      quantity: food.quantity,
+      remaining_shelf_life_hours: Math.max(0.1, (new Date(food.expiryTime) - new Date()) / (1000 * 60 * 60)),
+      ngo_capacity: capacity || 100,
+      category: food.foodCategory || food.category || "cooked_meals",
+      is_emergency: Boolean(food.isEmergency),
+      requires_refrigeration: Boolean(food.requiresRefrigeration)
+    };
+    mlPrediction = await runMlPrediction(mlInput);
+    if (mlPrediction && mlPrediction.success && mlPrediction.explanations) {
+      reasons.push(...mlPrediction.explanations);
+    }
+  } catch (mlErr) {
+    console.warn("[AIEngine] ML prediction note:", mlErr.message);
+  }
+
   return {
     ngo,
     distance: distanceKm,
@@ -274,6 +294,7 @@ const scoreCandidate = async (food, ngo, routeData) => {
     pickupETA: estimatedMinutes,
     confidenceScore: normalizedScore,
     matchScore: normalizedScore,
+    mlPrediction,
     reasons,
     warnings,
     isEstimatedRoute: isEstimated,

@@ -87,7 +87,7 @@ const DEMO_NGOS = [
 ];
 
 export const DemoProvider = ({ children }) => {
-  const [isDemoMode, setIsDemoMode] = useState(true);
+  const [isDemoMode, setIsDemoMode] = useState(() => import.meta.env.VITE_DEMO_MODE === "true");
   const [demoDonations, setDemoDonations] = useState(DEMO_DONATIONS);
   const [demoNgos, setDemoNgos] = useState(DEMO_NGOS);
 

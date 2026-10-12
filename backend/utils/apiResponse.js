@@ -6,22 +6,40 @@
  * Error:   { success: false, message: "...", code: "...", details: [] }
  */
 
-const sendSuccess = (res, data, message = "OK", statusCode = 200, meta = {}) => {
-  return res.status(statusCode).json({
+const successResponse = (data = {}, message = "OK", meta = {}) => {
+  if (typeof message === "object" && meta === {}) {
+    meta = message;
+    message = "OK";
+  }
+
+  return {
     success: true,
     message,
     data,
-    ...(Object.keys(meta).length > 0 ? { meta } : {})
-  });
+    ...(Object.keys(meta || {}).length > 0 ? { meta } : {})
+  };
 };
 
-const sendError = (res, message, statusCode = 500, code = "INTERNAL_ERROR", details = []) => {
-  return res.status(statusCode).json({
+const errorResponse = (message = "Internal Server Error", code = "INTERNAL_ERROR", details = []) => {
+  if (Array.isArray(code)) {
+    details = code;
+    code = "INTERNAL_ERROR";
+  }
+
+  return {
     success: false,
     message,
     code,
-    ...(details.length > 0 ? { details } : {})
-  });
+    ...(details && details.length > 0 ? { details } : {})
+  };
+};
+
+const sendSuccess = (res, data, message = "OK", statusCode = 200, meta = {}) => {
+  return res.status(statusCode).json(successResponse(data, message, meta));
+};
+
+const sendError = (res, message, statusCode = 500, code = "INTERNAL_ERROR", details = []) => {
+  return res.status(statusCode).json(errorResponse(message, code, details));
 };
 
 const sendNotFound = (res, entity = "Resource") => {
@@ -41,6 +59,8 @@ const sendValidationError = (res, message, details = []) => {
 };
 
 module.exports = {
+  successResponse,
+  errorResponse,
   sendSuccess,
   sendError,
   sendNotFound,

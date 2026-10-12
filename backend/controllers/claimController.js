@@ -12,18 +12,34 @@ const claimFood = async (req, res) => {
   try {
     const { foodId, ngoName, ngoId, recipientCount, notes } = req.body;
 
+    if (!req.user) {
+      return res.status(401).json(errorResponse("Authentication required to claim a donation.", "AUTH_REQUIRED"));
+    }
+
+    if (req.user.role !== "NGO") {
+      return res.status(403).json(errorResponse("Only verified NGOs can claim food donations.", "NGO_ROLE_REQUIRED"));
+    }
+
+    if (!foodId) {
+      return res.status(400).json(errorResponse("Food donation ID is required.", "INVALID_FOOD_ID"));
+    }
+
     const food = await Food.findById(foodId);
     if (!food) {
       return res.status(404).json(errorResponse("Food donation not found", "NOT_FOUND"));
     }
 
-    if (food.status === "Claimed" || food.lifecycleState === "completed") {
+    if (["Claimed", "claimed", "completed", "delivered", "cancelled"].includes(food.status)) {
       return res.status(400).json(errorResponse("Food has already been claimed", "ALREADY_CLAIMED"));
     }
 
-    // Expiry check
     if (food.expiryTime && new Date(food.expiryTime) < new Date()) {
       return res.status(400).json(errorResponse("Cannot claim expired food donation", "FOOD_EXPIRED"));
+    }
+
+    const existingClaim = await Claim.findOne({ foodId: food._id, status: { $in: ["requested", "approved", "completed"] } }).lean();
+    if (existingClaim) {
+      return res.status(409).json(errorResponse("This donation has already been claimed by another NGO.", "CLAIM_ALREADY_EXISTS"));
     }
 
     let resolvedNgo = null;
@@ -33,46 +49,72 @@ const claimFood = async (req, res) => {
       resolvedNgo = await NGO.findOne({ ngoName });
     }
 
-    // Check if user is associated with an NGO
-    if (!resolvedNgo && req.user && req.user.ngo) {
-      resolvedNgo = await NGO.findById(req.user.ngo);
+    if (!resolvedNgo && req.user) {
+      resolvedNgo = await NGO.findOne({ userId: req.user._id }) || await NGO.findOne({ user: req.user._id }) || await NGO.findById(req.user.ngoId).catch(() => null);
     }
 
-    // NGO Verification Status Guard
-    if (resolvedNgo) {
-      const isApproved = resolvedNgo.status === "approved" || resolvedNgo.verificationStatus === "verified";
-      if (!isApproved) {
-        return res.status(403).json(errorResponse("Only verified partner NGOs can claim food donations. Verification pending.", "NGO_NOT_VERIFIED"));
-      }
+    if (!resolvedNgo) {
+      return res.status(403).json(errorResponse("Your NGO profile is not linked to this account.", "NGO_PROFILE_REQUIRED"));
     }
 
-    const claimingNgoName = resolvedNgo ? resolvedNgo.ngoName : (ngoName || "Partner NGO");
-    const claimingNgoId = resolvedNgo ? resolvedNgo._id : null;
+    const isApproved = resolvedNgo.status === "approved" || resolvedNgo.verificationStatus === "verified" || resolvedNgo.verificationStatus === "VERIFIED";
+    if (!isApproved) {
+      return res.status(403).json(errorResponse("Only verified partner NGOs can claim food donations. Verification pending.", "NGO_NOT_VERIFIED"));
+    }
 
-    // 1. Create Claim Record
+    const category = food.foodCategory || food.category || "cooked_meals";
+    const accepted = Array.isArray(resolvedNgo.foodCategoriesAccepted) ? resolvedNgo.foodCategoriesAccepted : ["cooked_meals", "mixed"];
+    if (!accepted.includes(category) && !accepted.includes("mixed")) {
+      return res.status(400).json(errorResponse(`This NGO does not accept ${category}.`, "CATEGORY_NOT_ACCEPTED"));
+    }
+
+    const requiredStorage = Boolean(food.requiresRefrigeration || food.storageCondition === "refrigerated");
+    if (requiredStorage && !resolvedNgo.hasRefrigeration) {
+      return res.status(400).json(errorResponse("This NGO cannot handle the required storage condition for this donation.", "STORAGE_INCOMPATIBLE"));
+    }
+
+    const claimingNgoName = resolvedNgo.ngoName;
+    const claimingNgoId = resolvedNgo._id;
+
     const claim = await Claim.create({
       foodId: food._id,
+      donationTraceId: food.traceId,
       ngoId: claimingNgoId,
       ngoName: claimingNgoName,
-      claimedBy: req.user ? req.user._id : null,
+      claimedByUserId: req.user._id,
+      claimedByName: req.user.name,
       status: "approved",
-      requestedAt: new Date(),
-      approvedAt: new Date(),
-      notes: notes || `Claimed by ${claimingNgoName}`
+      matchScore: food.matchScore || 0,
+      estimatedDistance: 0,
+      estimatedDuration: 0,
+      operationId: null
     });
 
-    // 2. Create Operation Record for Pickup Pipeline
     const operation = await Operation.create({
       foodId: food._id,
+      donationTraceId: food.traceId,
+      donorName: food.donorName,
+      donorPhone: food.phone,
+      pickupAddress: food.address,
+      pickupLat: food.latitude,
+      pickupLng: food.longitude,
       ngoId: claimingNgoId,
+      ngoName: claimingNgoName,
+      deliveryAddress: resolvedNgo.address || food.address,
+      deliveryLat: resolvedNgo.latitude || food.latitude,
+      deliveryLng: resolvedNgo.longitude || food.longitude,
+      foodName: food.foodName,
+      quantity: food.quantity,
+      expiryTime: food.expiryTime,
+      priority: food.priority || "medium",
+      isEmergency: Boolean(food.isEmergency),
       status: "claimed",
-      assignedNgoName: claimingNgoName,
       timeline: [
         {
           status: "claimed",
           timestamp: new Date(),
-          actor: req.user ? req.user._id : null,
-          actorRole: req.user ? req.user.role : "NGO",
+          actor: req.user._id,
+          actorName: req.user.name,
           note: `Donation claimed by ${claimingNgoName}`
         }
       ]
@@ -81,45 +123,49 @@ const claimFood = async (req, res) => {
     claim.operationId = operation._id;
     await claim.save();
 
-    // 3. Update Food record status
     food.status = "Claimed";
-    food.lifecycleState = "claimed";
     food.claimedBy = claimingNgoName;
     food.claimedByNgoId = claimingNgoId;
+    food.claimedAt = new Date();
     food.statusHistory.push({
       status: "claimed",
-      changedBy: req.user ? req.user._id : null,
+      changedBy: req.user._id,
       note: `Claimed by NGO '${claimingNgoName}'`
     });
     await food.save();
 
-    // 4. Log History
     await History.create({
       foodId: food._id,
       action: "claimed",
       details: `Food claimed by NGO '${claimingNgoName}'. Rescue operation #${operation._id} initiated.`,
-      performedBy: req.user ? req.user._id : null,
-      performedByName: claimingNgoName
+      performedBy: req.user._id,
+      performedByName: claimingNgoName,
+      performedByRole: "NGO"
     });
 
-    // 5. Audit Log
     await logAudit({
-      actor: req.user ? req.user._id : null,
-      actorName: claimingNgoName,
-      actorRole: req.user ? req.user.role : "NGO",
+      actor: req.user._id,
+      actorName: req.user.name,
+      actorRole: req.user.role,
       action: "DONATION_CLAIMED",
       entityType: "Food",
       entityId: food._id,
       details: { claimId: claim._id, operationId: operation._id }
     });
 
-    // 6. Realtime Notifications
     try {
       await sendRealtimeNotification({
         recipientRole: "Donor",
         title: "Your donation has been claimed! 🎉",
         message: `NGO '${claimingNgoName}' has claimed your donation of ${food.foodName}. Pickup operation initiated!`,
-        type: "claimed"
+        type: "claim_approved"
+      });
+
+      await sendRealtimeNotification({
+        recipientRole: "NGO",
+        title: "Donation claim confirmed",
+        message: `Your claim for ${food.foodName} has been confirmed. Pickup operation has been created.`,
+        type: "claim_approved"
       });
 
       if (food.donor || food.donorId) {

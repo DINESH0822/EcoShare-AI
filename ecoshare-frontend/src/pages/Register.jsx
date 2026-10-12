@@ -1,16 +1,19 @@
 import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useLocation } from "react-router-dom";
 import axios from "axios";
 import { useAuth } from "../config/AuthContext";
 import toast from "react-hot-toast";
 import { motion } from "framer-motion";
 import { Eye, EyeOff, Leaf, Mail, Lock, User, ShieldCheck, HeartHandshake, Settings2, ArrowRight } from "lucide-react";
 
-function Register() {
+function Register({ role: propRole }) {
+  const { pathname } = useLocation();
   const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState("Donor");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [role, setRole] = useState(propRole || (pathname.includes("/ngo/") ? "NGO" : pathname.includes("/admin/") ? "Admin" : "Donor"));
   const [loading, setLoading] = useState(false);
   const [showPass, setShowPass] = useState(false);
   const { API_BASE } = useAuth();
@@ -18,11 +21,42 @@ function Register() {
 
   const handleRegister = async (e) => {
     e.preventDefault();
+
+    if (password.length < 6) {
+      toast.error("Password must be at least 6 characters long.");
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      toast.error("Passwords do not match.");
+      return;
+    }
+
+    const cleanPhone = phone.replace(/\D/g, "");
+    if (cleanPhone.length < 10) {
+      toast.error("Please enter a valid 10-digit mobile number.");
+      return;
+    }
+
+    if (role === "Admin") {
+      toast.error("Admin accounts are managed by system administrators. Please use the secure admin login flow.");
+      navigate("/login");
+      return;
+    }
+
     setLoading(true);
     try {
-      await axios.post(`${API_BASE}/api/users/register`, { name, email, password, role });
+      const endpoint = role === "NGO"
+        ? `${API_BASE}/api/auth/ngo/register`
+        : `${API_BASE}/api/auth/donor/register`;
+
+      const payload = role === "NGO"
+        ? { ngoName: name, contactPerson: name, email, password, phone: cleanPhone, organizationType: "ngo" }
+        : { name, email, password, phone: cleanPhone, role: "Donor" };
+
+      await axios.post(endpoint, payload);
       toast.success("Account created successfully! Please sign in.");
-      navigate("/login");
+      navigate(role === "NGO" ? "/ngo/login" : "/login");
     } catch (err) {
       toast.error(err.response?.data?.message || "Registration failed. Please try again.");
     } finally {
@@ -51,9 +85,10 @@ function Register() {
       id: "Admin",
       label: "Platform Admin",
       icon: <Settings2 className="w-5 h-5 text-indigo-400" />,
-      desc: "Moderate users & review logs",
-      bg: "bg-slate-900/60 border-slate-800 text-slate-300",
+      desc: "Secure admin login only",
+      bg: "bg-slate-900/60 border-slate-800 text-slate-300 opacity-70",
       activeBg: "bg-indigo-950/40 border-indigo-500/80 text-white ring-2 ring-indigo-500/30",
+      disabled: true,
     },
   ];
 
@@ -71,17 +106,14 @@ function Register() {
         className="auth-card relative z-10 w-full max-w-lg rounded-3xl p-8 my-8"
       >
         {/* Header */}
-        <div className="text-center mb-8">
-          <div className="w-14 h-14 bg-[linear-gradient(135deg,#16834b,#0f5132)] text-white rounded-2xl inline-flex items-center justify-center mb-4 shadow-[0_8px_24px_rgba(22,131,75,0.18)]">
+        <div className="auth-register-header">
+          <div className="auth-register-icon">
             <Leaf className="w-7 h-7 text-white" />
           </div>
-          <h1 className="text-2xl font-extrabold text-[var(--text)] tracking-tight">
-            Join{" "}
-            <span className="text-[var(--primary-dark)]">
-              EcoShare AI
-            </span>
+          <h1 className="auth-register-title">
+            Join <span>EcoShare AI</span>
           </h1>
-          <p className="text-[var(--text-secondary)] text-sm mt-1.5 font-medium">
+          <p className="auth-register-subtitle">
             Create your account and start making a measurable impact
           </p>
         </div>
@@ -100,6 +132,25 @@ function Register() {
                 placeholder="Your full name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
+                className="eco-input pl-10 bg-slate-900/80 border-slate-700/80 text-white placeholder-slate-500 focus:border-sky-400"
+                required
+              />
+            </div>
+          </div>
+
+          {/* Mobile Number */}
+          <div>
+            <label className="block text-xs font-bold text-[var(--text-secondary)] mb-2 uppercase tracking-wider" htmlFor="reg-phone">
+              Mobile Number
+            </label>
+            <div className="relative">
+              <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <input
+                id="reg-phone"
+                type="tel"
+                placeholder="9876543210"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
                 className="eco-input pl-10 bg-slate-900/80 border-slate-700/80 text-white placeholder-slate-500 focus:border-sky-400"
                 required
               />
@@ -151,6 +202,25 @@ function Register() {
             </div>
           </div>
 
+          {/* Confirm Password */}
+          <div>
+            <label className="block text-xs font-bold text-[var(--text-secondary)] mb-2 uppercase tracking-wider" htmlFor="reg-confirm-password">
+              Confirm Password
+            </label>
+            <div className="relative">
+              <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <input
+                id="reg-confirm-password"
+                type={showPass ? "text" : "password"}
+                placeholder="Re-enter your password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                className="eco-input pl-10 bg-slate-900/80 border-slate-700/80 text-white placeholder-slate-500 focus:border-sky-400"
+                required
+              />
+            </div>
+          </div>
+
           {/* Role Selection */}
           <div>
             <label className="block text-xs font-bold text-[var(--text-secondary)] mb-3 uppercase tracking-wider">
@@ -161,8 +231,9 @@ function Register() {
                 <button
                   key={r.id}
                   type="button"
-                  onClick={() => setRole(r.id)}
-                  className={`p-3 rounded-2xl border text-left transition-all cursor-pointer ${
+                  onClick={() => !r.disabled && setRole(r.id)}
+                  disabled={r.disabled}
+                  className={`p-3 rounded-2xl border text-left transition-all ${r.disabled ? "cursor-not-allowed opacity-70" : "cursor-pointer"} ${
                     role === r.id ? r.activeBg : r.bg
                   }`}
                 >

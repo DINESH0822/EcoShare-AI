@@ -1,0 +1,6 @@
+# Python Machine Learning dependencies for EcoShare AI
+# Used by Render native Python environment or container builds
+numpy>=1.26.0
+pandas>=2.2.0
+scikit-learn>=1.4.0
+joblib>=1.3.0
