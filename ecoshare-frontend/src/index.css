@@ -222,7 +222,7 @@ a {
   max-width: 1800px;
   width: min(100%, calc(100% - 24px));
   margin: 0 auto;
-  height: 82px;
+  height: 66px;
 }
 
 .search-wrap {
@@ -445,12 +445,12 @@ a {
 }
 
 .hero-title {
-  margin-top: 16px;
+  margin-top: 10px;
   max-width: 620px;
-  font-size: clamp(2.9rem, 4vw, 4.2rem);
-  line-height: 0.96;
-  letter-spacing: -0.07em;
-  font-weight: 900;
+  font-size: clamp(2.2rem, 3.2vw, 3.2rem);
+  line-height: 1.05;
+  letter-spacing: -0.05em;
+  font-weight: 800;
   color: var(--text);
 }
 
