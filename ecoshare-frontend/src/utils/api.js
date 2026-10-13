@@ -22,7 +22,10 @@ const API_BASE_URL = resolveApiBaseUrl();
 
 export const api = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 15000,
+  // Render's free tier sleeps when idle and can take 30-60s to cold-start.
+  // A 15s timeout aborted legitimate requests during a cold boot, surfacing as
+  // "Failed to create donation". Give the backend enough headroom to wake up.
+  timeout: 60000,
   headers: {
     "Content-Type": "application/json",
   },
@@ -47,6 +50,32 @@ api.interceptors.request.use(
     return config;
   },
   (error) => Promise.reject(error)
+);
+
+// Cold-start resilience: Render's free tier sleeps when idle, so the first
+// request after inactivity may fail with a network error (no response) before
+// the server finishes waking up. Automatically retry such transient failures
+// a couple of times instead of surfacing "Failed to create donation".
+api.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const config = error.config;
+    const isNetworkOrTimeout =
+      !error.response ||
+      error.code === "ECONNABORTED" ||
+      error.code === "ETIMEDOUT" ||
+      error.message === "Network Error" ||
+      error.message === "timeout of 0ms exceeded";
+
+    const retries = (config && config.__retryCount) || 0;
+    if (config && isNetworkOrTimeout && retries < 2) {
+      config.__retryCount = retries + 1;
+      // Small backoff to give the sleeping backend time to boot.
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+      return api(config);
+    }
+    return Promise.reject(error);
+  }
 );
 
 // Response interceptor to normalize error responses and handle session expiration
