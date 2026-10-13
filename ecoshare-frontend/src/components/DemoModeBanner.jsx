@@ -5,16 +5,14 @@ import { useDemo } from "../config/DemoContext";
 export default function DemoModeBanner() {
   const { isDemoMode, toggleDemoMode } = useDemo();
 
-  if (!isDemoMode) {
-    return null;
-  }
-
   return (
     <div className="demo-banner">
       <div className="demo-banner__left">
         <Sparkles className="w-3.5 h-3.5 text-[var(--primary)]" />
         <span className="demo-banner__title">EcoShare AI Platform</span>
-        <span className="demo-banner__subtitle">AI matching, traceability, and rescue operations</span>
+        <span className="demo-banner__subtitle">
+          {isDemoMode ? "Showing realistic sample data across dashboards" : "Preview the platform with realistic sample data"}
+        </span>
       </div>
 
       <div className="demo-banner__actions">
