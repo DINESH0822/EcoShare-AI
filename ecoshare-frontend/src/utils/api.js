@@ -1,9 +1,24 @@
 import axios from "axios";
 
-// Default API Base URL: Uses VITE_API_BASE_URL if configured, otherwise falls back to window.location origin in production or http://localhost:5000 in dev
-const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL ||
-  (import.meta.env.MODE === "production" ? "" : "http://localhost:5000");
+// Resolve the API base URL consistently across the app.
+// Priority:
+//   1. VITE_API_BASE_URL (set per-environment, e.g. on Vercel) — explicit override.
+//   2. Local development -> http://localhost:5000 (Vite dev server).
+//   3. Production without an override -> the deployed Render backend.
+// This must match the backend URL used by AuthContext/firebase.js, otherwise
+// production API calls hit the Vercel origin, which only serves the SPA HTML
+// (via the vercel.json rewrite) and every request fails.
+const PRODUCTION_API_BASE_URL = "https://ecoshare-ai.onrender.com";
+
+const resolveApiBaseUrl = () => {
+  if (import.meta.env.VITE_API_BASE_URL) return import.meta.env.VITE_API_BASE_URL;
+  if (typeof window !== "undefined" && window.location.hostname === "localhost") {
+    return "http://localhost:5000";
+  }
+  return PRODUCTION_API_BASE_URL;
+};
+
+const API_BASE_URL = resolveApiBaseUrl();
 
 export const api = axios.create({
   baseURL: API_BASE_URL,
