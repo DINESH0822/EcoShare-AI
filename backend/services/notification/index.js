@@ -8,6 +8,7 @@ const { getIO } = require("../../socket");
 
 const sendNotification = async ({
   recipient,
+  recipientRole = "All",
   type,
   title,
   message,
@@ -19,24 +20,30 @@ const sendNotification = async ({
   metadata = {}
 }) => {
   try {
+    const entity = operationId
+      ? { entityType: "Operation", entityId: operationId }
+      : claimId
+        ? { entityType: "Claim", entityId: claimId }
+        : foodId
+          ? { entityType: "Food", entityId: foodId }
+          : ngoId
+            ? { entityType: "NGO", entityId: ngoId }
+            : {};
+
     const notification = await Notification.create({
-      recipient,
+      recipientId: recipient || null,
+      recipientRole,
       type,
       title,
       message,
-      foodId,
-      ngoId,
-      operationId,
-      claimId,
-      priority,
-      metadata,
-      read: false
+      ...entity,
+      priority: priority === "normal" ? "medium" : priority
     });
 
     // Real-time socket delivery if socket server initialized
     try {
       const io = getIO();
-      if (io) {
+      if (io && recipient) {
         io.to(recipient.toString()).emit("notification", notification);
       }
     } catch (sockErr) {

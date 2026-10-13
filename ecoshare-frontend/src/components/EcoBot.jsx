@@ -1,130 +1,56 @@
-import React, { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Bot, X, Send, ExternalLink, Loader2 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
+import api from "../utils/api";
 
-const ecoShareKnowledge = [
-  {
-    keywords: ["what is ecoshare ai", "ecoshare ai", "what is this platform", "about ecoshare"],
-    reply: "EcoShare AI is an AI-powered food rescue platform that connects surplus food donors with verified organizations, volunteers and logistics teams. It uses intelligent matching based on location, food type, quantity, storage capacity and urgency to reduce waste and improve delivery outcomes.",
-    suggestions: ["How does AI matching work?", "How do I create a donation?", "What can I do in Donations?"],
-    quickActions: [
-      { label: "View Dashboard", action: "/dashboard" },
-      { label: "Browse Donations", action: "/donations" }
-    ]
-  },
-  {
-    keywords: ["ai matching", "how does ai", "match donation", "explain ai matching", "matching workflow"],
-    reply: "The AI matching workflow evaluates each donation against participating organizations using distance, food category, quantity, storage capacity, rescue urgency and current operational availability. It then scores and ranks the most suitable organizations and recommends the best rescue option.",
-    suggestions: ["How do I track a rescue?", "What is EcoShare AI?", "How are organizations verified?"],
-    quickActions: [{ label: "View Analytics", action: "/analytics" }]
-  },
-  {
-    keywords: ["create a donation", "how do i create", "post food", "add donation", "new donation"],
-    reply: "Open the Donations view and choose Create Donation. Add the food type, quantity, pickup location, expiry details, and storage condition. Once published, EcoShare AI evaluates urgency and recommends the best organization for pickup and redistribution.",
-    suggestions: ["What can I do in Donations?", "How does AI matching work?"],
-    quickActions: [{ label: "+ Add Food", action: "/add-food" }]
-  },
-  {
-    keywords: ["donation", "donations", "create donation", "what can i do in donations"],
-    reply: "The Donations section lets you create and manage surplus food listings, view their live status, monitor AI matches, and follow the rescue journey from donation creation to pickup and delivery.",
-    suggestions: ["How do I track a rescue?", "How does AI matching work?"],
-    quickActions: [{ label: "Browse Donations", action: "/donations" }]
-  },
-  {
-    keywords: ["track rescue", "how do i track a rescue", "pickup", "delivery tracking", "where is my rescue"],
-    reply: "Open Operations to view the live rescue pipeline. Each mission shows the donation, assigned organization, volunteer, ETA, pickup progress and delivery status so the rescue flow remains transparent and easy to track.",
-    suggestions: ["What can I do in Operations?", "How does AI matching work?"],
-    quickActions: [{ label: "Open Operations", action: "/operations" }]
-  },
-  {
-    keywords: ["organization", "ngo", "org", "verified organization", "how are organizations verified"],
-    reply: "Organizations are verified through the EcoShare approval workflow, which checks capacity, eligibility, food safety readiness and operational reliability. Only verified organizations can receive food and participate in matching.",
-    suggestions: ["What can I do in Organizations?", "How does AI matching work?"],
-    quickActions: [{ label: "View Network", action: "/organizations" }]
-  },
-  {
-    keywords: ["analytics", "impact", "environmental impact", "how is environmental impact calculated"],
-    reply: "EcoShare measures impact by estimating meals rescued, food waste diverted, carbon offset and water saved based on the rescued volume and the distribution workflow. Impact numbers are clearly labeled as estimated when they are calculated approximations.",
-    suggestions: ["What is EcoShare AI?", "How does AI matching work?"],
-    quickActions: [{ label: "View Analytics", action: "/analytics" }]
-  },
-  {
-    keywords: ["food safety", "safety", "safe food"],
-    reply: "EcoShare emphasizes safe handling and operational readiness. Donations include storage and condition details, and organizations are expected to meet safety and compliance requirements before accepting food transfers.",
-    suggestions: ["How are organizations verified?", "How does AI matching work?"],
-    quickActions: [{ label: "Open Dashboard", action: "/dashboard" }]
-  },
-  {
-    keywords: ["admin", "admin functions", "platform administration", "approve organization", "audit"],
-    reply: "Admins manage verification queues, approve or reject organizations, monitor system activity and review audit logs. The Admin Control Center helps maintain governance, performance visibility and platform reliability.",
-    suggestions: ["How are organizations verified?", "What is EcoShare AI?"],
-    quickActions: [{ label: "Open Admin", action: "/admin" }]
-  },
-  {
-    keywords: ["rescue operations", "operations", "active rescue", "current missions"],
-    reply: "Operations is the live rescue command center. It displays active missions, assigned volunteers, NGO partners, route status, ETA and delivery progress so the field team can monitor the full workflow.",
-    suggestions: ["How do I track a rescue?", "What can I do in Donations?"],
-    quickActions: [{ label: "Open Operations", action: "/operations" }]
-  },
-  {
-    keywords: ["history", "audit history", "past activity", "log"],
-    reply: "History captures a traceable record of donations, AI matches, pickups, delivery completions and system activity. It helps maintain accountability and lets you review the full rescue timeline.",
-    suggestions: ["What can I do in Operations?", "What is EcoShare AI?"],
-    quickActions: [{ label: "Open History", action: "/history" }]
-  },
-  {
-    keywords: ["navigation", "how do i use this app", "where do i go", "platform navigation"],
-    reply: "Use the left sidebar as the main navigation. Dashboard gives the platform overview, Donations manages food listings, Organizations tracks verified partners, Operations monitors rescues, Analytics shows impact and History keeps the operational trace.",
-    suggestions: ["What can I do in Donations?", "What is EcoShare AI?"],
-    quickActions: [
-      { label: "Dashboard", action: "/dashboard" },
-      { label: "Organizations", action: "/organizations" }
-    ]
+const createInitialMessages = () => [{
+  sender: "bot",
+  text: "Hello. I’m EcoBot. I can look up records available to your account and explain EcoShare workflows.",
+  suggestions: ["What donations do I have?", "Show my pending claims", "How does AI matching work?"],
+  timestamp: new Date().toISOString()
+}];
+
+const readAuthIdentity = () => {
+  try {
+    const user = JSON.parse(localStorage.getItem("userInfo") || "null");
+    return user?.token ? `${user._id || ""}:${user.token}` : "";
+  } catch (error) {
+    console.warn("Could not read EcoBot account context:", error.message);
+    return "";
   }
-];
+};
 
-const getFallbackReply = (message) => {
-  const text = message.toLowerCase();
-  const user = JSON.parse(localStorage.getItem("userInfo") || "null");
-
-  const match = ecoShareKnowledge.find((entry) =>
-    entry.keywords.some((keyword) => text.includes(keyword))
-  );
-
-  if (match) {
-    return match;
-  }
-
-  return {
-    reply: `Hello${user?.name ? ", " + user.name.split(" ")[0] : ""}. I'm EcoBot, the EcoShare rescue assistant. I can help with donations, NGO matching, rescue operations, analytics, verification and overall platform navigation.`,
-    suggestions: [
-      "What is EcoShare AI?",
-      "How does AI matching work?",
-      "How do I create a donation?",
-      "How do I track a rescue?",
-      "How are organizations verified?",
-      "How is environmental impact calculated?"
-    ],
-    quickActions: [
-      { label: "Open Dashboard", action: "/dashboard" },
-      { label: "Browse Organizations", action: "/organizations" }
-    ]
-  };
+const formatTimestamp = (value) => {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "" : date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 };
 
 export default function EcoBot() {
   const [isOpen, setIsOpen] = useState(false);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const [messages, setMessages] = useState([
-    {
-      sender: "bot",
-      text: "Hello. I'm EcoBot, the EcoShare rescue assistant. I can help you understand donations, organizations, AI matching, rescue operations, and the platform workflow."
-    }
-  ]);
+  const [messages, setMessages] = useState(createInitialMessages);
 
   const messagesEndRef = useRef(null);
+  const pendingRequestRef = useRef(false);
+  const authIdentityRef = useRef(readAuthIdentity());
+  const location = useLocation();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const resetForAccountChange = () => {
+      const nextIdentity = readAuthIdentity();
+      if (nextIdentity === authIdentityRef.current) return;
+      authIdentityRef.current = nextIdentity;
+      setMessages(createInitialMessages());
+      setInput("");
+      setIsOpen(false);
+    };
+
+    resetForAccountChange();
+    window.addEventListener("storage", resetForAccountChange);
+    return () => window.removeEventListener("storage", resetForAccountChange);
+  }, [location.pathname]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -134,71 +60,50 @@ export default function EcoBot() {
     if (isOpen) scrollToBottom();
   }, [messages, isOpen]);
 
-  const suggestedPrompts = [
-    "What is EcoShare AI?",
-    "How does AI matching work?",
-    "How do I create a donation?",
-    "How are organizations verified?",
-    "How do I track a rescue?",
-    "How is environmental impact calculated?"
-  ];
+  const handleSend = async (userText = input, { retry = false } = {}) => {
+    const textToSend = userText.trim();
+    if (!textToSend || pendingRequestRef.current) return;
 
-  const handleSend = async (userText) => {
-    const textToSend = userText || input;
-    if (!textToSend.trim()) return;
-
-    const userMessage = { sender: "user", text: textToSend };
-    setMessages((prev) => [...prev, userMessage]);
-    if (!userText) setInput("");
+    const nextIdentity = readAuthIdentity();
+    const accountChanged = nextIdentity !== authIdentityRef.current;
+    if (accountChanged) {
+      authIdentityRef.current = nextIdentity;
+      setMessages(createInitialMessages());
+      setInput("");
+      if (retry) return;
+    }
+    pendingRequestRef.current = true;
+    if (!retry) {
+      setMessages((prev) => [...(accountChanged ? createInitialMessages() : prev), { sender: "user", text: textToSend, timestamp: new Date().toISOString() }]);
+      setInput("");
+    }
     setLoading(true);
 
     try {
-      const res = await fetch("/api/chatbot/query", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: textToSend })
+      const previousIntent = accountChanged ? undefined : [...messages].reverse().find((message) => message.sender === "bot" && message.intent)?.intent;
+      const res = await api.post("/api/chatbot/query", {
+        message: textToSend,
+        context: { previousIntent }
       });
-
-      if (!res.ok) {
-        throw new Error(`Chatbot backend returned ${res.status}`);
-      }
-
-      const data = await res.json();
-
-      if (data.success && data.data) {
-        setMessages((prev) => [
-          ...prev,
-          {
-            sender: "bot",
-            text: data.data.reply,
-            suggestions: data.data.suggestions || [],
-            quickActions: data.data.quickActions || []
-          }
-        ]);
-      } else {
-        const fallback = getFallbackReply(textToSend);
-        setMessages((prev) => [
-          ...prev,
-          {
-            sender: "bot",
-            text: fallback.reply,
-            suggestions: fallback.suggestions || [],
-            quickActions: fallback.quickActions || []
-          }
-        ]);
-      }
+      const result = res.data?.data ?? res.data;
+      if (!result?.reply) throw new Error("The assistant returned an empty response.");
+      setMessages((prev) => [...prev, {
+        sender: "bot",
+        text: result.reply,
+        intent: result.intent,
+        suggestions: result.suggestions || [],
+        quickActions: result.quickActions || [],
+        timestamp: result.timestamp || new Date().toISOString()
+      }]);
     } catch (err) {
-      const fallback = getFallbackReply(textToSend);
-      setMessages((prev) => [
-        ...prev,
-        {
-          sender: "bot",
-          text: fallback.reply,
-          suggestions: fallback.suggestions || [],
-          quickActions: fallback.quickActions || []
-        }
-      ]);
+      setMessages((prev) => [...prev, {
+        sender: "bot",
+        text: `Live data could not be retrieved. ${err.message || "Check your connection and try again."}`,
+        retryText: textToSend,
+        timestamp: new Date().toISOString()
+      }]);
     } finally {
+      pendingRequestRef.current = false;
       setLoading(false);
     }
   };
@@ -217,7 +122,7 @@ export default function EcoBot() {
       )}
 
       {isOpen && (
-        <div className="ecobot-panel">
+        <section className="ecobot-panel" role="dialog" aria-label="EcoBot assistant" aria-modal="false">
           <div className="ecobot-header">
             <div className="ecobot-header__identity">
               <div className="ecobot-header__icon">
@@ -237,9 +142,16 @@ export default function EcoBot() {
 
           <div className="ecobot-messages">
             {messages.map((msg, i) => (
-              <div key={i} className={`message-row ${msg.sender === "user" ? "message-row--user" : "message-row--bot"}`}>
+              <div key={`${msg.timestamp}-${i}`} className={`message-row ${msg.sender === "user" ? "message-row--user" : "message-row--bot"}`}>
                 <div className={`message-bubble ${msg.sender === "user" ? "message-bubble--user" : "message-bubble--bot"}`}>
                   <div className="whitespace-pre-wrap">{msg.text}</div>
+                  {msg.timestamp && <time className="ecobot-message-time">{formatTimestamp(msg.timestamp)}</time>}
+
+                  {msg.retryText && (
+                    <button type="button" onClick={() => handleSend(msg.retryText, { retry: true })} disabled={loading} className="ecobot-retry">
+                      Retry request
+                    </button>
+                  )}
 
                   {msg.quickActions && msg.quickActions.length > 0 && (
                     <div className="quick-actions">
@@ -261,8 +173,8 @@ export default function EcoBot() {
 
                 {msg.suggestions && msg.suggestions.length > 0 && (
                   <div className="suggestion-row">
-                    {msg.suggestions.map((suggestion, idx) => (
-                      <button key={idx} onClick={() => handleSend(suggestion)} className="suggestion-pill">
+                      {msg.suggestions.map((suggestion, idx) => (
+                      <button key={idx} type="button" disabled={loading} onClick={() => handleSend(suggestion)} className="suggestion-pill">
                         {suggestion}
                       </button>
                     ))}
@@ -280,27 +192,26 @@ export default function EcoBot() {
           </div>
 
           <div className="ecobot-input-row">
-            <div className="suggestion-list">
-              {suggestedPrompts.map((prompt) => (
-                <button key={prompt} type="button" onClick={() => handleSend(prompt)} className="suggestion-chip">
-                  {prompt}
-                </button>
-              ))}
-            </div>
             <div className="composer">
-              <input
-                type="text"
+              <textarea
+                rows={2}
+                aria-label="Ask EcoBot a question"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleSend()}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSend();
+                  }
+                }}
                 placeholder="Ask EcoBot anything..."
               />
-              <button onClick={() => handleSend()} disabled={loading || !input.trim()}>
+              <button type="button" onClick={() => handleSend()} disabled={loading || !input.trim()} aria-label="Send message">
                 <Send className="w-4 h-4" />
               </button>
             </div>
           </div>
-        </div>
+        </section>
       )}
     </>
   );

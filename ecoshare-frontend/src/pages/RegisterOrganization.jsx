@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import axios from "axios";
+import api from "../utils/api";
 import Navbar from "../components/Navbar";
 import DemoModeBanner from "../components/DemoModeBanner";
 import LocationPicker from "../components/LocationPicker";
@@ -57,7 +57,7 @@ export default function RegisterOrganization() {
 
     setLoading(true);
     try {
-      await axios.post("/api/organizations/register", formData);
+      await api.post("/api/organizations/register", formData);
       toast.success("Organization registered and submitted for PENDING_REVIEW audit!");
       setTimeout(() => navigate("/ngos"), 1500);
     } catch (err) {
@@ -70,25 +70,24 @@ export default function RegisterOrganization() {
   return (
     <div className="eco-bg min-h-screen pb-20">
       <DemoModeBanner />
-      <Navbar />
-
-      <main className="max-w-3xl mx-auto px-4 py-8 space-y-6">
-        <div>
-          <div className="flex items-center gap-2 text-xs font-bold text-sky-400 uppercase tracking-wider mb-1">
-            <Building className="w-4 h-4" /> Recipient Partner Registration
+      <Navbar>
+        <main className="max-w-3xl mx-auto px-4 py-8 space-y-6">
+          <div>
+            <div className="flex items-center gap-2 text-xs font-bold text-[var(--primary)] uppercase tracking-wider mb-1">
+              <Building className="w-4 h-4" /> Recipient Partner Registration
+            </div>
+            <h1 className="text-section font-extrabold text-[var(--text)]">Register Food Rescue Organization</h1>
+            <p className="text-xs text-[var(--text-secondary)] mt-1">
+              Submit your organization details for official verification. Pending applications undergo document audit before claim capabilities are activated.
+            </p>
           </div>
-          <h1 className="text-section font-extrabold text-white">Register Food Rescue Organization</h1>
-          <p className="text-xs text-slate-400 mt-1">
-            Submit your organization details for official verification. Pending applications undergo document audit before claim capabilities are activated.
-          </p>
-        </div>
 
-        <form onSubmit={handleSubmit} className="stat-card space-y-6">
+          <form onSubmit={handleSubmit} className="stat-card space-y-6">
           
-          <div className="space-y-4">
-            <h3 className="text-sm font-bold text-white uppercase tracking-wider border-b border-slate-800 pb-2">
-              1. Organization Identity
-            </h3>
+            <div className="space-y-4">
+              <h3 className="text-sm font-bold text-[var(--text)] uppercase tracking-wider border-b border-[var(--border)] pb-2">
+                1. Organization Identity
+              </h3>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
@@ -148,12 +147,12 @@ export default function RegisterOrganization() {
                 />
               </div>
             </div>
-          </div>
+            </div>
 
-          <div className="space-y-4 pt-2">
-            <h3 className="text-sm font-bold text-white uppercase tracking-wider border-b border-slate-800 pb-2">
-              2. Operational Capabilities
-            </h3>
+            <div className="space-y-4 pt-2">
+              <h3 className="text-sm font-bold text-[var(--text)] uppercase tracking-wider border-b border-[var(--border)] pb-2">
+                2. Operational Capabilities
+              </h3>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
@@ -182,34 +181,35 @@ export default function RegisterOrganization() {
                 />
               </div>
             </div>
-          </div>
+            </div>
 
-          <div className="space-y-4 pt-2">
-            <h3 className="text-sm font-bold text-white uppercase tracking-wider border-b border-slate-800 pb-2">
-              3. Organization Location
-            </h3>
-            <LocationPicker
-              value={{
-                latitude: formData.latitude,
-                longitude: formData.longitude,
-                address: formData.address,
-                city: formData.city,
-                state: formData.state,
-                pincode: formData.pincode
-              }}
-              onChange={handleLocationChange}
-            />
-          </div>
+            <div className="space-y-4 pt-2">
+              <h3 className="text-sm font-bold text-[var(--text)] uppercase tracking-wider border-b border-[var(--border)] pb-2">
+                3. Organization Location
+              </h3>
+              <LocationPicker
+                value={{
+                  latitude: formData.latitude,
+                  longitude: formData.longitude,
+                  address: formData.address,
+                  city: formData.city,
+                  state: formData.state,
+                  pincode: formData.pincode
+                }}
+                onChange={handleLocationChange}
+              />
+            </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="btn-primary w-full py-3.5 text-sm font-bold flex items-center justify-center gap-2"
-          >
-            {loading ? "Submitting Registration..." : "Submit Organization for Verification Audit"}
-          </button>
-        </form>
-      </main>
+            <button
+              type="submit"
+              disabled={loading}
+              className="btn-primary w-full py-3.5 text-sm font-bold flex items-center justify-center gap-2"
+            >
+              {loading ? "Submitting Registration..." : "Submit Organization for Verification Audit"}
+            </button>
+          </form>
+        </main>
+      </Navbar>
 
       <EcoBot />
     </div>

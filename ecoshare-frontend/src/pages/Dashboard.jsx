@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
+import api from "../utils/api";
 import Navbar from "../components/Navbar";
 import DemoModeBanner from "../components/DemoModeBanner";
 import DashboardMap from "../components/DashboardMap";
@@ -38,9 +38,9 @@ function Dashboard() {
 
     try {
       const [foodRes, ngoRes, analyticsRes] = await Promise.all([
-        axios.get("/api/food"),
-        axios.get("/api/ngo"),
-        axios.get("/api/analytics")
+        api.get("/api/food"),
+        api.get("/api/ngo"),
+        api.get("/api/analytics")
       ]);
       setFoods(Array.isArray(foodRes.data) ? foodRes.data : demoDonations);
       setNgos(Array.isArray(ngoRes.data) ? ngoRes.data : demoNgos);

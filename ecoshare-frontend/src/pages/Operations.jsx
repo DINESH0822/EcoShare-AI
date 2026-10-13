@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
+import api from "../utils/api";
 import { Link } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import DemoModeBanner from "../components/DemoModeBanner";
@@ -10,7 +10,7 @@ import { Truck, ArrowRight, MapPin, Clock3, UserRound, Route } from "lucide-reac
 
 const DEMO_OPERATIONS = [
   {
-    _id: "op-101",
+    _id: "507f1f77bcf86cd799439011",
     status: "en_route",
     assignedNgoName: "Robin Hood Army",
     volunteerName: "Rajesh",
@@ -26,7 +26,7 @@ const DEMO_OPERATIONS = [
     updatedAt: new Date().toISOString()
   },
   {
-    _id: "op-102",
+    _id: "5f1b7c77bcf86cd799439022",
     status: "claimed",
     assignedNgoName: "Roti Bank Foundation",
     volunteerName: "Asha",
@@ -42,7 +42,7 @@ const DEMO_OPERATIONS = [
     updatedAt: new Date().toISOString()
   },
   {
-    _id: "op-103",
+    _id: "64b74f22bcf86cd799439033",
     status: "pickup_scheduled",
     assignedNgoName: "Feeding India",
     volunteerName: "Nikhil",
@@ -62,6 +62,7 @@ const DEMO_OPERATIONS = [
 export default function Operations() {
   const [operations, setOperations] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const [activeStage, setActiveStage] = useState("all");
   const { isDemoMode } = useDemo();
 
@@ -71,6 +72,7 @@ export default function Operations() {
 
   const fetchOperations = async () => {
     setLoading(true);
+    setError("");
     if (isDemoMode) {
       setOperations(DEMO_OPERATIONS);
       setLoading(false);
@@ -78,11 +80,12 @@ export default function Operations() {
     }
 
     try {
-      const res = await axios.get("/api/operations");
-      const data = res.data.data || res.data;
-      setOperations(Array.isArray(data) ? data : DEMO_OPERATIONS);
+      const res = await api.get("/api/operations");
+      const data = res.data?.data ?? res.data;
+      setOperations(Array.isArray(data) ? data : []);
     } catch (err) {
-      setOperations(DEMO_OPERATIONS);
+      setOperations([]);
+      setError(err.message || "Unable to load rescue operations from the backend.");
     } finally {
       setLoading(false);
     }
@@ -160,10 +163,18 @@ export default function Operations() {
                   <p className="section-kicker">Dispatch queue</p>
                   <h3 className="section-title">Active rescue queue</h3>
                 </div>
-                <span className="live-pill">{filteredOps.length} live</span>
+                <span className="live-pill">{filteredOps.length} operations</span>
               </div>
 
-              {loading ? (
+              {error && !loading ? (
+                <div className="empty-state">
+                  <div>
+                    <h4>Unable to load rescue queue</h4>
+                    <p>{error}</p>
+                    <button type="button" onClick={fetchOperations} className="btn-secondary mt-3">Retry</button>
+                  </div>
+                </div>
+              ) : loading ? (
                 <div className="empty-state">
                   <div>
                     <h4>Loading rescue queue</h4>
@@ -179,7 +190,14 @@ export default function Operations() {
                 </div>
               ) : (
                 <div className="rescue-card-list">
-                  {filteredOps.map((op) => (
+                  {filteredOps.map((op) => {
+                    const organizationName = op.ngoId?.ngoName || op.ngoName || "NGO not assigned";
+                    const volunteerName = op.volunteerId?.name || op.volunteerName || "Unassigned";
+                    const eta = Number(op.estimatedDuration) > 0 ? `${op.estimatedDuration} min` : "Not recorded";
+                    const distance = Number(op.estimatedDistance) > 0 ? `${op.estimatedDistance} km` : "Not recorded";
+                    const updatedAt = op.updatedAt ? new Date(op.updatedAt).toLocaleString() : "Time not recorded";
+
+                    return (
                     <article key={op._id} className="rescue-card">
                       <div className="rescue-card__topline">
                         <span className={`status-badge ${op.status === "en_route" ? "status-badge--success" : op.status === "claimed" ? "status-badge--primary" : "status-badge--danger"}`}>
@@ -191,32 +209,32 @@ export default function Operations() {
                       <h4>{op.foodId?.foodName || "Food Rescue"}</h4>
 
                       <div className="rescue-card__meta">
-                        <span><Truck className="w-4 h-4" /> {op.foodId?.quantity || 0} servings</span>
-                        <span><MapPin className="w-4 h-4" /> {op.foodId?.address || "Pickup location"}</span>
+                        <span><Truck className="w-4 h-4" /> {op.foodId?.quantity ?? op.quantity ?? "Not set"} {op.foodId?.quantityUnit || "servings"}</span>
+                        <span><MapPin className="w-4 h-4" /> {op.foodId?.address || op.pickupAddress || "Pickup location not provided"}</span>
                       </div>
 
                       <div className="rescue-card__grid">
                         <div>
                           <span className="rescue-card__label">NGO</span>
-                          <strong>{op.assignedNgoName}</strong>
+                          <strong>{organizationName}</strong>
                         </div>
                         <div>
                           <span className="rescue-card__label">Volunteer</span>
-                          <strong>{op.volunteerName || "Dispatch team"}</strong>
+                          <strong>{volunteerName}</strong>
                         </div>
                         <div>
                           <span className="rescue-card__label">ETA</span>
-                          <strong>{op.eta || "--"}</strong>
+                          <strong>{eta}</strong>
                         </div>
                         <div>
                           <span className="rescue-card__label">Distance</span>
-                          <strong>{op.distance || "--"}</strong>
+                          <strong>{distance}</strong>
                         </div>
                       </div>
 
                       <div className="rescue-card__footer">
                         <div className="rescue-card__status">
-                          <Clock3 className="w-4 h-4" /> Updated just now
+                          <Clock3 className="w-4 h-4" /> {updatedAt}
                         </div>
                         <div className="rescue-card__actions">
                           <Link to={`/operations/${op._id}`} className="btn-secondary btn-secondary--small no-underline">Track</Link>
@@ -224,7 +242,8 @@ export default function Operations() {
                         </div>
                       </div>
                     </article>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>

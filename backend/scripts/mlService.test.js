@@ -1,8 +1,13 @@
 const test = require("node:test");
+const { after } = require("node:test");
 const assert = require("node:assert/strict");
-const { runMlPrediction } = require("../services/mlService");
+const { runMlPrediction, warmUpMlWorker, fallbackDeterministicScore, shutdownMlWorker } = require("../services/mlService");
 
-test("ML Service - valid donation and NGO input executes Python model", async () => {
+after(() => shutdownMlWorker());
+
+test("ML Service - valid donation input uses a real model result or an explicit fallback", async () => {
+  // Warm the worker first so the first real prediction is not lost to cold-start.
+  await warmUpMlWorker().catch(() => {});
   const input = {
     distance_km: 4.5,
     quantity: 80,
@@ -14,13 +19,18 @@ test("ML Service - valid donation and NGO input executes Python model", async ()
   };
 
   const result = await runMlPrediction(input);
-  assert.equal(result.success, true);
-  assert.ok(typeof result.claimProbability === "number");
-  assert.ok(result.claimProbability >= 0 && result.claimProbability <= 1);
-  assert.ok(typeof result.mlScore === "number");
+  assert.equal(result.success, result.predictionSource === "python-model");
   assert.ok(Array.isArray(result.explanations));
   assert.ok(result.explanations.length > 0);
-  assert.ok(result.modelVersion);
+  if (result.success) {
+    assert.ok(typeof result.claimProbability === "number");
+    assert.ok(result.claimProbability >= 0 && result.claimProbability <= 1);
+    assert.ok(typeof result.mlScore === "number");
+    assert.equal(result.datasetProvenance.includes("Synthetic"), true);
+  } else {
+    assert.equal(result.predictionSource, "deterministic-fallback");
+    assert.ok(typeof result.fallbackScore === "number");
+  }
 });
 
 test("ML Service - handles edge inputs (extreme distance)", async () => {
@@ -35,15 +45,19 @@ test("ML Service - handles edge inputs (extreme distance)", async () => {
   };
 
   const result = await runMlPrediction(input);
-  assert.equal(result.success, true);
-  assert.ok(typeof result.mlScore === "number");
-  // Extreme distance + tight shelf life lowers claim probability
-  assert.ok(result.mlScore <= 70);
+  if (result.success) {
+    assert.ok(typeof result.mlScore === "number");
+    assert.ok(result.mlScore <= 70);
+  } else {
+    assert.equal(result.predictionSource, "deterministic-fallback");
+    assert.ok(typeof result.fallbackScore === "number");
+  }
 });
 
-test("ML Service - fallback behaves correctly when empty payload provided", async () => {
-  const result = await runMlPrediction({});
-  assert.equal(result.success, true);
-  assert.ok(typeof result.mlScore === "number");
-  assert.ok(result.mlScore >= 0 && result.mlScore <= 100);
+test("ML Service - deterministic fallback is never labelled as an ML prediction", () => {
+  const result = fallbackDeterministicScore({});
+  assert.equal(result.success, false);
+  assert.equal(result.predictionSource, "deterministic-fallback");
+  assert.equal(typeof result.fallbackScore, "number");
+  assert.equal(result.claimProbability, undefined);
 });

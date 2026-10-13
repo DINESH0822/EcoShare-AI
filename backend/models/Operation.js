@@ -47,6 +47,10 @@ const operationSchema = mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "NGO"
     },
+    assignedNgo: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "NGO"
+    },
     ngoName: { type: String },
     ngoPhone: { type: String },
     deliveryAddress: { type: String },
@@ -55,6 +59,10 @@ const operationSchema = mongoose.Schema(
 
     // Volunteer / driver
     volunteerId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User"
+    },
+    assignedVolunteer: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User"
     },
@@ -81,6 +89,7 @@ const operationSchema = mongoose.Schema(
     pickupOTPVerified: { type: Boolean, default: false },
     pickupPhotoUrl: { type: String },
     pickupTimestamp: { type: Date },
+      temperatureAtPickup: { type: Number },
     pickupGpsLat: { type: Number },
     pickupGpsLng: { type: Number },
     deliveryTimestamp: { type: Date },
@@ -101,6 +110,24 @@ const operationSchema = mongoose.Schema(
     timestamps: true
   }
 );
+
+operationSchema.pre("save", function (next) {
+  if (this.assignedVolunteer && !this.volunteerId) {
+    this.volunteerId = this.assignedVolunteer;
+  }
+  if (!this.assignedVolunteer && this.volunteerId) {
+    this.assignedVolunteer = this.volunteerId;
+  }
+
+  if (this.assignedNgo && !this.ngoId) {
+    this.ngoId = this.assignedNgo;
+  }
+  if (!this.assignedNgo && this.ngoId) {
+    this.assignedNgo = this.ngoId;
+  }
+
+  next();
+});
 
 module.exports = mongoose.model("Operation", operationSchema);
 module.exports.OPERATION_STATUSES = OPERATION_STATUSES;

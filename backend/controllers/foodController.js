@@ -4,6 +4,7 @@ const AIRecommendation = require("../models/AIRecommendation");
 const { calculateRecommendations } = require("../utils/aiEngine");
 const { sendRealtimeNotification } = require("../socket");
 const { successResponse, errorResponse } = require("../utils/apiResponse");
+const { isValidObjectId } = require("../utils/idValidation");
 
 // India geographic bounding box (approximate)
 const INDIA_BOUNDS = {
@@ -114,7 +115,6 @@ const createFood = async (req, res) => {
       pincode: pincode || "",
       latitude: !isNaN(lat) ? lat : 19.076,
       longitude: !isNaN(lng) ? lng : 72.8777,
-      donor: donorId,
       donorId,
       foodCategory: normalizedCategory,
       category: normalizedCategory,
@@ -223,7 +223,11 @@ const getFoods = async (req, res) => {
 // Get Food by ID
 const getFoodById = async (req, res) => {
   try {
-    const food = await Food.findById(req.params.id).populate("donor", "name email phone");
+    if (!isValidObjectId(req.params.id)) {
+      return res.status(400).json(errorResponse("Invalid food ID. Expected a Mongo ObjectId.", "INVALID_FOOD_ID"));
+    }
+
+    const food = await Food.findById(req.params.id).populate("donorId", "name email phone");
     if (!food) {
       return res.status(404).json(errorResponse("Food donation not found", "NOT_FOUND"));
     }
@@ -244,7 +248,7 @@ const getFoodById = async (req, res) => {
 // Get Food by Traceability ID
 const getFoodByTraceabilityId = async (req, res) => {
   try {
-    const food = await Food.findOne({ traceabilityId: req.params.traceabilityId }).populate("donor", "name email");
+    const food = await Food.findOne({ traceabilityId: req.params.traceabilityId }).populate("donorId", "name email");
     if (!food) {
       return res.status(404).json(errorResponse("Traceability record not found", "NOT_FOUND"));
     }
@@ -263,6 +267,10 @@ const getFoodByTraceabilityId = async (req, res) => {
 // Get Ranked AI Matches for Food
 const getMatchesForFood = async (req, res) => {
   try {
+    if (!isValidObjectId(req.params.id)) {
+      return res.status(400).json(errorResponse("Invalid food ID. Expected a Mongo ObjectId.", "INVALID_FOOD_ID"));
+    }
+
     const food = await Food.findById(req.params.id);
     if (!food) {
       return res.status(404).json(errorResponse("Food donation not found", "NOT_FOUND"));
@@ -282,6 +290,10 @@ const getMatchesForFood = async (req, res) => {
 // Delete Food Donation
 const deleteFood = async (req, res) => {
   try {
+    if (!isValidObjectId(req.params.id)) {
+      return res.status(400).json(errorResponse("Invalid food ID. Expected a Mongo ObjectId.", "INVALID_FOOD_ID"));
+    }
+
     const deletedFood = await Food.findByIdAndDelete(req.params.id);
 
     if (!deletedFood) {

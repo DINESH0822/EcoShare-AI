@@ -7,8 +7,8 @@ const getNotifications = async (req, res) => {
     // Find notifications matching "All", user's role, or specifically for user's _id
     const notifications = await Notification.find({
       $or: [
-        { recipientRole: "All" },
-        { recipientRole: role },
+        { recipientRole: "All", recipientId: null },
+        { recipientRole: role, recipientId: null },
         { recipientId: _id }
       ]
     }).sort({ createdAt: -1 }).limit(50);
@@ -56,8 +56,8 @@ const markAllAsRead = async (req, res) => {
 
     const notifications = await Notification.find({
       $or: [
-        { recipientRole: "All" },
-        { recipientRole: role },
+        { recipientRole: "All", recipientId: null },
+        { recipientRole: role, recipientId: null },
         { recipientId: userId }
       ],
       readBy: { $ne: userId }

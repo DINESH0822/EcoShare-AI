@@ -11,30 +11,30 @@ export default function RescuePipeline({ activeStage = "all", onSelectStage, cou
   ];
 
   return (
-    <div className="bg-[#0D1A2A] border border-[rgba(148,163,184,0.14)] rounded-2xl p-5 space-y-3 min-h-[120px]">
+    <div className="min-h-[120px] space-y-3 rounded-2xl border border-[var(--border)] bg-white/85 p-5 shadow-[var(--shadow)] backdrop-blur-sm">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-xl font-semibold text-[#F8FAFC]">Rescue pipeline</h3>
-          <p className="text-sm text-[#94A3B8] mt-0.5">Track donations through each rescue stage</p>
+          <h3 className="text-xl font-semibold text-[var(--text)]">Rescue pipeline</h3>
+          <p className="mt-0.5 text-sm text-[var(--text-secondary)]">Track donations through each rescue stage</p>
         </div>
       </div>
 
-      <div className="flex items-center justify-between overflow-x-auto gap-2 pt-1">
+      <div className="flex items-center justify-between gap-2 overflow-x-auto pt-1">
         {stages.map((st, idx) => (
           <button
             key={st.key}
             onClick={() => onSelectStage && onSelectStage(st.key)}
-            className={`flex items-center gap-2.5 px-3.5 py-2 rounded-xl text-sm font-medium transition-colors cursor-pointer whitespace-nowrap ${
+            className={`flex cursor-pointer items-center gap-2.5 whitespace-nowrap rounded-xl px-3.5 py-2 text-sm font-medium transition-colors ${
               activeStage === st.key
-                ? "bg-[#3B82F6]/15 text-[#3B82F6] border border-[#3B82F6]/30 font-semibold"
-                : "text-[#94A3B8] hover:bg-[#111F31] hover:text-[#F8FAFC]"
+                ? "border border-[var(--primary-soft)] bg-[var(--primary-soft)] font-semibold text-[var(--primary)]"
+                : "text-[var(--text-secondary)] hover:bg-[var(--surface-soft)] hover:text-[var(--text)]"
             }`}
           >
             <span>{st.label}</span>
-            <span className="px-2 py-0.5 rounded-full bg-[#07111F] text-xs text-[#F8FAFC] font-mono border border-[rgba(148,163,184,0.14)]">
+            <span className="rounded-full border border-[var(--border)] bg-[var(--surface-soft)] px-2 py-0.5 font-mono text-xs text-[var(--text)]">
               {st.count}
             </span>
-            {idx < stages.length - 1 && <span className="text-[#1E3045] ml-1.5 hidden sm:inline">→</span>}
+            {idx < stages.length - 1 && <span className="ml-1.5 hidden text-[var(--text-secondary)] sm:inline">→</span>}
           </button>
         ))}
       </div>

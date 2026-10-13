@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import axios from "axios";
+import { useParams, useNavigate, Link } from "react-router-dom";
+import api from "../utils/api";
 import Navbar from "../components/Navbar";
 import DemoModeBanner from "../components/DemoModeBanner";
 import StatusPipeline from "../components/StatusPipeline";
@@ -21,8 +21,9 @@ const formatDate = (value) => {
 
 const getFoodValue = (food, keys) => {
   for (const key of keys) {
-    if (food?.[key] !== undefined && food?.[key] !== null && food?.[key] !== "") {
-      return food[key];
+    const value = key.split(".").reduce((current, part) => current?.[part], food);
+    if (value !== undefined && value !== null && value !== "") {
+      return value;
     }
   }
   return null;
@@ -82,7 +83,7 @@ export default function DonationDetail() {
     }
 
     try {
-      const res = await axios.get(`/api/food/${id}`);
+      const res = await api.get(`/api/food/${id}`);
       const payload = res.data?.data ?? res.data;
       const detail = payload?.food ?? payload;
 
@@ -96,13 +97,14 @@ export default function DonationDetail() {
       setRecommendation(payload?.recommendation ?? detail.recommendation ?? null);
       setTimeline(payload?.timeline ?? detail.timeline ?? []);
     } catch (err) {
-      const status = err?.response?.status;
+      const status = err?.status || err?.response?.status;
       setFood(null);
       setNotFound(status === 404);
-      setError(status === 404 ? "Donation not found." : "Unable to load donation details.");
-      if (status !== 404) {
-        toast.error("Unable to load donation details.");
-      }
+      setError(
+        status === 404
+          ? "Donation not found."
+          : err?.response?.data?.message || err?.message || "Unable to load donation details. Check your connection and retry."
+      );
     } finally {
       setLoading(false);
     }
@@ -111,21 +113,20 @@ export default function DonationDetail() {
   const handleClaim = async () => {
     setClaiming(true);
     try {
-      await axios.post("/api/claim", {
-        foodId: food._id,
-        ngoName: user?.name || "Partner NGO"
+      await api.post("/api/claim", {
+        foodId: food._id
       });
       toast.success("Food donation claimed successfully!");
       fetchFoodDetail();
     } catch (err) {
-      toast.error(err.response?.data?.message || "Failed to claim donation");
+      toast.error(err?.message || "Failed to claim donation");
     } finally {
       setClaiming(false);
     }
   };
 
-  const donorPhone = getFoodValue(food, ["donorPhone", "phone", "donor.phone", "contactNumber"]) || "Not available";
-  const donorEmail = getFoodValue(food, ["donorEmail", "email", "donor.email"]) || "Not available";
+  const donorPhone = getFoodValue(food, ["donorPhone", "phone", "donorId.phone", "contactNumber"]) || "Not available";
+  const donorEmail = getFoodValue(food, ["donorEmail", "email", "donorId.email"]) || "Not available";
   const donorLocation = [getFoodValue(food, ["donorAddress", "address", "location"]), getFoodValue(food, ["city"]), getFoodValue(food, ["state"])].filter(Boolean).join(", ") || "Not available";
   const category = getFoodValue(food, ["foodCategory", "category", "foodType"]) || "Cooked meals";
   const storage = getFoodValue(food, ["storageTemperature", "storageCondition", "storageType"]) || (food?.requiresRefrigeration ? "Refrigeration required" : "Ambient");
@@ -137,10 +138,12 @@ export default function DonationDetail() {
   if (loading) {
     return (
       <div className="eco-bg min-h-screen">
-        <Navbar />
-        <div className="max-w-4xl mx-auto px-4 py-20 text-center">
-          <p className="text-xs text-slate-400">Loading donation details...</p>
-        </div>
+        <DemoModeBanner />
+        <Navbar>
+          <main className="mx-auto max-w-4xl px-4 py-20 text-center">
+            <p className="text-xs text-[var(--text-secondary)]">Loading donation details...</p>
+          </main>
+        </Navbar>
       </div>
     );
   }
@@ -149,14 +152,18 @@ export default function DonationDetail() {
     return (
       <div className="eco-bg min-h-screen">
         <DemoModeBanner />
-        <Navbar />
-        <main className="page-container">
-          <div className="bg-[#101D2D] border border-slate-800 rounded-2xl p-8 text-center space-y-4 max-w-xl mx-auto">
-            <h1 className="text-page-title">{notFound ? "Donation not found" : "Unable to load donation details"}</h1>
-            <p className="text-body">{error || "The donation you are trying to open is missing or the server could not return it."}</p>
-            <button onClick={() => navigate("/donations")} className="btn-primary">Return to donations</button>
-          </div>
-        </main>
+        <Navbar>
+          <main className="page-container">
+            <div className="mx-auto max-w-xl space-y-4 rounded-2xl border border-[var(--border)] bg-white/85 p-8 text-center shadow-[var(--shadow)] backdrop-blur-sm">
+              <h1 className="text-page-title">{notFound ? "Donation not found" : "Unable to load donation details"}</h1>
+              <p className="text-body">{error || "The donation you are trying to open is missing or the server could not return it."}</p>
+              <div className="flex flex-wrap justify-center gap-3">
+                {!notFound && <button onClick={fetchFoodDetail} className="btn-secondary" type="button">Retry</button>}
+                <button onClick={() => navigate("/donations")} className="btn-primary" type="button">Return to donations</button>
+              </div>
+            </div>
+          </main>
+        </Navbar>
       </div>
     );
   }
@@ -164,44 +171,49 @@ export default function DonationDetail() {
   return (
     <div className="eco-bg min-h-screen pb-16">
       <DemoModeBanner />
-      <Navbar />
-
-      <main className="page-container space-y-6">
-        <button
-          onClick={() => navigate(-1)}
-          className="text-xs font-semibold text-slate-400 hover:text-white flex items-center gap-1 cursor-pointer"
-        >
-          <ArrowLeft className="w-4 h-4" /> Back to Listings
+      <Navbar>
+        <main className="page-container min-w-0 space-y-6">
+        <button onClick={() => navigate(-1)} className="flex cursor-pointer items-center gap-1 text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--text)]">
+          <ArrowLeft className="h-4 w-4" /> Back to Listings
         </button>
 
-        <div className="bg-[#101D2D] border border-slate-800/80 rounded-2xl p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-6 shadow-sm">
-          <div>
-            <div className="flex items-center gap-3 flex-wrap mb-2">
+        <div className="flex flex-col justify-between gap-6 rounded-2xl border border-[var(--border)] bg-white/85 p-6 shadow-[var(--shadow)] backdrop-blur-sm sm:flex-row sm:items-center">
+          <div className="min-w-0">
+            <div className="mb-2 flex flex-wrap items-center gap-3">
               <span className={`badge-status ${food.isEmergency ? "badge-emergency" : food.status === "Claimed" || food.status === "claimed" ? "badge-claimed" : "badge-available"}`}>
                 {food.isEmergency ? "Emergency" : food.status || "Available"}
               </span>
-              <span className="text-xs font-mono text-slate-400">
+              <span className="break-all font-mono text-xs text-[var(--text-secondary)]">
                 Traceability ID: {food.traceabilityId || food.traceId || "ECO-2026-ACTIVE"}
               </span>
             </div>
-            <h1 className="text-page-title">{food.foodName || "Unnamed donation"}</h1>
-            <p className="text-body mt-1 flex items-center gap-2">
-              <span>Donor: <strong className="text-white">{food.donorName || "Unknown donor"}</strong></span>
+            <h1 className="break-words text-page-title">{food.foodName || "Unnamed donation"}</h1>
+            <p className="mt-1 flex flex-wrap items-start gap-x-2 gap-y-1 text-body">
+              <span>Donor: <strong className="text-[var(--text)]">{food.donorName || "Unknown donor"}</strong></span>
               <span>•</span>
-              <span className="flex items-center gap-1 text-slate-400">
-                <MapPin className="w-3.5 h-3.5 text-blue-400" /> {donorLocation}
+              <span className="flex min-w-0 items-start gap-1 break-words text-[var(--text-secondary)]">
+                <MapPin className="h-3.5 w-3.5 text-[var(--primary)]" /> {donorLocation}
               </span>
             </p>
           </div>
 
           <div className="flex items-center gap-3">
             {food.status === "Available" || food.status === "available" ? (
-              <button onClick={handleClaim} disabled={claiming} className="btn-primary">
-                {claiming ? "Claiming..." : "Claim Food & Schedule Pickup"}
-              </button>
+              user?.role === "NGO" ? (
+                <button onClick={handleClaim} disabled={claiming} className="btn-primary">
+                  {claiming ? "Claiming..." : "Claim Food & Schedule Pickup"}
+                </button>
+              ) : (
+                <p className="max-w-xs text-xs text-[var(--text-secondary)] sm:text-right">
+                  Only verified NGO accounts can claim donations.{" "}
+                  <Link to="/ngo/login" className="font-semibold text-[var(--primary)] hover:underline">
+                    Sign in as an NGO
+                  </Link>
+                </p>
+              )
             ) : (
-              <span className="badge-status badge-claimed text-xs py-2 px-3">
-                <CheckCircle2 className="w-4 h-4" /> Claimed by {food.claimedBy || recommendation?.ngoName || "NGO Partner"}
+              <span className="badge-status badge-claimed px-3 py-2 text-xs">
+                <CheckCircle2 className="h-4 w-4" /> Claimed by {food.claimedBy || recommendation?.ngoName || "NGO Partner"}
               </span>
             )}
           </div>
@@ -209,48 +221,48 @@ export default function DonationDetail() {
 
         <StatusPipeline currentStatus={food.lifecycleState || food.status || "published"} />
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 space-y-6">
+        <div className="grid min-w-0 grid-cols-1 gap-6 lg:grid-cols-3">
+          <div className="min-w-0 space-y-6 lg:col-span-2">
             <div className="stat-card space-y-4">
               <h3 className="text-section-title text-base flex items-center gap-2">
-                <ShieldCheck className="w-5 h-5 text-green-400" /> Food Information
+                <ShieldCheck className="h-5 w-5 text-[var(--primary)]" /> Food Information
               </h3>
 
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                <div className="p-3 bg-[#07111F] border border-slate-800 rounded-xl">
-                  <span className="text-[11px] text-slate-400 block font-medium">Food type</span>
-                  <p className="text-xs font-semibold text-white mt-0.5 capitalize">{String(category).replace(/_/g, " ")}</p>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] p-3">
+                  <span className="block text-[11px] font-medium text-[var(--text-secondary)]">Food type</span>
+                  <p className="mt-0.5 text-xs font-semibold capitalize text-[var(--text)]">{String(category).replace(/_/g, " ")}</p>
                 </div>
-                <div className="p-3 bg-[#07111F] border border-slate-800 rounded-xl">
-                  <span className="text-[11px] text-slate-400 block font-medium">Quantity</span>
-                  <p className="text-xs font-semibold text-blue-400 mt-0.5">{food.quantity || 0} {unitLabel}</p>
+                <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] p-3">
+                  <span className="block text-[11px] font-medium text-[var(--text-secondary)]">Quantity</span>
+                  <p className="mt-0.5 text-xs font-semibold text-[var(--primary)]">{food.quantity || 0} {unitLabel}</p>
                 </div>
-                <div className="p-3 bg-[#07111F] border border-slate-800 rounded-xl">
-                  <span className="text-[11px] text-slate-400 block font-medium">Storage / condition</span>
-                  <p className="text-xs font-semibold text-slate-200 mt-0.5 capitalize">{String(storage).replace(/_/g, " ")}</p>
+                <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] p-3">
+                  <span className="block text-[11px] font-medium text-[var(--text-secondary)]">Storage / condition</span>
+                  <p className="mt-0.5 text-xs font-semibold capitalize text-[var(--text)]">{String(storage).replace(/_/g, " ")}</p>
                 </div>
-                <div className="p-3 bg-[#07111F] border border-slate-800 rounded-xl">
-                  <span className="text-[11px] text-slate-400 block font-medium">Prepared</span>
-                  <p className="text-xs font-semibold text-slate-200 mt-0.5">{formatDate(preparedAt)}</p>
+                <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] p-3">
+                  <span className="block text-[11px] font-medium text-[var(--text-secondary)]">Prepared</span>
+                  <p className="mt-0.5 text-xs font-semibold text-[var(--text)]">{formatDate(preparedAt)}</p>
                 </div>
-                <div className="p-3 bg-[#07111F] border border-slate-800 rounded-xl">
-                  <span className="text-[11px] text-slate-400 block font-medium">Expiry</span>
-                  <p className="text-xs font-semibold text-amber-400 mt-0.5">{formatDate(food.expiryTime)}</p>
+                <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] p-3">
+                  <span className="block text-[11px] font-medium text-[var(--text-secondary)]">Expiry</span>
+                  <p className="mt-0.5 text-xs font-semibold text-[var(--warning)]">{formatDate(food.expiryTime)}</p>
                 </div>
-                <div className="p-3 bg-[#07111F] border border-slate-800 rounded-xl">
-                  <span className="text-[11px] text-slate-400 block font-medium">Vegetarian</span>
-                  <p className="text-xs font-semibold text-green-400 mt-0.5">{food.isVegetarian === false ? "No" : "Yes"}</p>
+                <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] p-3">
+                  <span className="block text-[11px] font-medium text-[var(--text-secondary)]">Vegetarian</span>
+                  <p className="mt-0.5 text-xs font-semibold text-[var(--success)]">{food.isVegetarian === false ? "No" : "Yes"}</p>
                 </div>
               </div>
 
-              <div className="p-3 bg-[#07111F] border border-slate-800 rounded-xl text-xs text-slate-300">
-                <strong className="text-slate-400 block mb-0.5">Description:</strong>
+              <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] p-3 text-xs text-[var(--text)]">
+                <strong className="mb-0.5 block text-[var(--text-secondary)]">Description:</strong>
                 {description}
               </div>
 
               {pickupWindow.length > 0 && (
-                <div className="p-3 bg-[#07111F] border border-slate-800 rounded-xl text-xs text-slate-300">
-                  <strong className="text-slate-400 block mb-1">Pickup window:</strong>
+                <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] p-3 text-xs text-[var(--text)]">
+                  <strong className="mb-1 block text-[var(--text-secondary)]">Pickup window:</strong>
                   {pickupWindow.map((time) => formatDate(time)).join(" → ")}
                 </div>
               )}
@@ -260,15 +272,15 @@ export default function DonationDetail() {
 
             <div className="stat-card space-y-3">
               <h3 className="text-section-title text-base flex items-center gap-2">
-                <Clock className="w-5 h-5 text-blue-400" /> Audit Log
+                <Clock className="h-5 w-5 text-[var(--primary)]" /> Audit Log
               </h3>
               <div className="space-y-3 pt-2">
                 {(timeline.length ? timeline : [{ details: "Donation published to the network", createdAt: new Date().toISOString() }]).map((event, idx) => (
-                  <div key={idx} className="flex items-start gap-3 text-xs border-b border-slate-800/60 pb-3 last:border-0">
-                    <div className="w-2 h-2 rounded-full bg-blue-400 mt-1.5 shrink-0" />
+                  <div key={idx} className="flex items-start gap-3 border-b border-[var(--border)] pb-3 text-xs last:border-0">
+                    <div className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-[var(--primary)]" />
                     <div>
-                      <p className="font-semibold text-slate-200">{event.details || "Donation activity recorded"}</p>
-                      <p className="text-[11px] text-slate-500 mt-0.5">
+                      <p className="font-semibold text-[var(--text)]">{event.details || "Donation activity recorded"}</p>
+                      <p className="mt-0.5 text-[11px] text-[var(--text-secondary)]">
                         {event.performedByName || "System"} • {formatDate(event.createdAt || Date.now())}
                       </p>
                     </div>
@@ -278,39 +290,40 @@ export default function DonationDetail() {
             </div>
           </div>
 
-          <div className="space-y-6">
+          <div className="min-w-0 space-y-6">
             <div>
-              <h3 className="text-xs font-semibold text-slate-400 uppercase mb-2">Recipient Compatibility</h3>
+              <h3 className="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-[var(--text-secondary)]">Recipient Compatibility</h3>
               <MatchScoreCard recommendation={recommendation || { confidenceScore: 0, ngoName: "Awaiting match" }} />
             </div>
 
-            <div className="bg-[#101D2D] border border-slate-800/80 rounded-2xl p-5 space-y-4">
+            <div className="rounded-2xl border border-[var(--border)] bg-white/85 p-5 shadow-[var(--shadow)] backdrop-blur-sm space-y-4">
               <div className="flex items-center gap-3">
-                <div className="p-2.5 bg-blue-500/10 border border-blue-500/20 rounded-xl text-blue-400">
-                  <QrCode className="w-5 h-5" />
+                <div className="rounded-xl border border-[var(--primary-soft)] bg-[var(--primary-soft)] p-2.5 text-[var(--primary)]">
+                  <QrCode className="h-5 w-5" />
                 </div>
                 <div>
-                  <h4 className="text-xs font-semibold text-white">Donation details</h4>
-                  <p className="text-[11px] text-slate-400">Operational record</p>
+                  <h4 className="text-xs font-semibold text-[var(--text)]">Donation details</h4>
+                  <p className="text-[11px] text-[var(--text-secondary)]">Operational record</p>
                 </div>
               </div>
 
-              <div className="space-y-3 text-xs text-slate-300">
-                <div className="flex justify-between gap-4"><span className="text-slate-400">Donation ID</span><span className="font-semibold text-white">{food._id || food.traceabilityId || "N/A"}</span></div>
-                <div className="flex justify-between gap-4"><span className="text-slate-400">Created</span><span className="font-semibold text-white">{formatDate(food.createdAt)}</span></div>
-                <div className="flex justify-between gap-4"><span className="text-slate-400">Status</span><span className="font-semibold text-white">{food.status || "Available"}</span></div>
-                <div className="flex justify-between gap-4"><span className="text-slate-400">Donor</span><span className="font-semibold text-white">{food.donorName || "Unknown donor"}</span></div>
-                <div className="flex justify-between gap-4"><span className="text-slate-400">Phone</span><span className="font-semibold text-white">{donorPhone}</span></div>
-                <div className="flex justify-between gap-4"><span className="text-slate-400">Email</span><span className="font-semibold text-white">{donorEmail}</span></div>
+              <div className="min-w-0 space-y-3 text-xs text-[var(--text)]">
+                <div className="flex flex-wrap justify-between gap-x-4 gap-y-1"><span className="text-[var(--text-secondary)]">Donation ID</span><span className="min-w-0 max-w-full break-all text-right font-semibold text-[var(--text)]">{food._id || food.traceabilityId || "N/A"}</span></div>
+                <div className="flex flex-wrap justify-between gap-x-4 gap-y-1"><span className="text-[var(--text-secondary)]">Created</span><span className="min-w-0 max-w-full break-words text-right font-semibold text-[var(--text)]">{formatDate(food.createdAt)}</span></div>
+                <div className="flex flex-wrap justify-between gap-x-4 gap-y-1"><span className="text-[var(--text-secondary)]">Status</span><span className="min-w-0 max-w-full break-words text-right font-semibold text-[var(--text)]">{food.status || "Available"}</span></div>
+                <div className="flex flex-wrap justify-between gap-x-4 gap-y-1"><span className="text-[var(--text-secondary)]">Donor</span><span className="min-w-0 max-w-full break-words text-right font-semibold text-[var(--text)]">{food.donorName || "Unknown donor"}</span></div>
+                <div className="flex flex-wrap justify-between gap-x-4 gap-y-1"><span className="text-[var(--text-secondary)]">Phone</span><span className="min-w-0 max-w-full break-all text-right font-semibold text-[var(--text)]">{donorPhone}</span></div>
+                <div className="flex flex-wrap justify-between gap-x-4 gap-y-1"><span className="text-[var(--text-secondary)]">Email</span><span className="min-w-0 max-w-full break-all text-right font-semibold text-[var(--text)]">{donorEmail}</span></div>
               </div>
 
-              <a href={`/history?trace=${food.traceabilityId || food.traceId || food._id}`} className="w-full btn-secondary text-xs justify-center no-underline py-2">
-                Open Audit Page <ExternalLink className="w-3.5 h-3.5" />
+              <a href={`/history?trace=${food.traceabilityId || food.traceId || food._id}`} className="btn-secondary w-full justify-center py-2 text-xs no-underline">
+                Open Audit Page <ExternalLink className="h-3.5 w-3.5" />
               </a>
             </div>
           </div>
         </div>
-      </main>
+        </main>
+      </Navbar>
 
       <EcoBot />
     </div>

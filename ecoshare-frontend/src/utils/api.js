@@ -14,10 +14,12 @@ export const api = axios.create({
 });
 
 // Request interceptor to automatically attach JWT token
+// AuthContext stores user data under "userInfo" key
 api.interceptors.request.use(
   (config) => {
     try {
-      const storedUser = localStorage.getItem("user");
+      // AuthContext uses "userInfo" as the storage key
+      const storedUser = localStorage.getItem("userInfo");
       if (storedUser) {
         const user = JSON.parse(storedUser);
         if (user && user.token) {
@@ -43,7 +45,8 @@ api.interceptors.response.use(
         error.config?.url?.includes("/api/auth/register") ||
         error.config?.url?.includes("/api/users/login");
       if (!isAuthRoute) {
-        localStorage.removeItem("user");
+        // Clear session using the correct storage key matching AuthContext
+        localStorage.removeItem("userInfo");
         if (window.location.pathname !== "/login" && !window.location.pathname.startsWith("/login")) {
           // Do not hard-redirect immediately if user is already browsing public pages
         }

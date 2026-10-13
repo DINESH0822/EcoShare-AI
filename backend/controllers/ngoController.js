@@ -2,6 +2,7 @@ const NGO = require("../models/NGO");
 const User = require("../models/User");
 const { sendRealtimeNotification } = require("../socket");
 const { successResponse, errorResponse } = require("../utils/apiResponse");
+const { isValidObjectId } = require("../utils/idValidation");
 const { logAudit } = require("../services/audit");
 
 // Create NGO Registration
@@ -117,7 +118,11 @@ const getNGOs = async (req, res) => {
 // Get NGO by ID
 const getNGOById = async (req, res) => {
   try {
-    const ngo = await NGO.findById(req.params.id).populate("user", "name email role");
+    if (!isValidObjectId(req.params.id)) {
+      return res.status(400).json(errorResponse("Invalid NGO ID. Expected a Mongo ObjectId.", "INVALID_NGO_ID"));
+    }
+
+    const ngo = await NGO.findById(req.params.id).populate("userId", "name email role");
     if (!ngo) {
       return res.status(404).json(errorResponse("NGO not found", "NOT_FOUND"));
     }
@@ -130,6 +135,10 @@ const getNGOById = async (req, res) => {
 // Delete NGO
 const deleteNGO = async (req, res) => {
   try {
+    if (!isValidObjectId(req.params.id)) {
+      return res.status(400).json(errorResponse("Invalid NGO ID. Expected a Mongo ObjectId.", "INVALID_NGO_ID"));
+    }
+
     const ngo = await NGO.findByIdAndDelete(req.params.id);
     if (!ngo) {
       return res.status(404).json(errorResponse("NGO not found", "NOT_FOUND"));
@@ -143,9 +152,17 @@ const deleteNGO = async (req, res) => {
 // Admin Approve NGO
 const approveNGO = async (req, res) => {
   try {
+    if (!isValidObjectId(req.params.id)) {
+      return res.status(400).json(errorResponse("Invalid NGO ID. Expected a Mongo ObjectId.", "INVALID_NGO_ID"));
+    }
+
     const ngo = await NGO.findById(req.params.id);
     if (!ngo) {
       return res.status(404).json(errorResponse("NGO not found", "NOT_FOUND"));
+    }
+
+    if (ngo.status === "approved" && ngo.verificationStatus === "verified") {
+      return res.status(200).json({ success: true, data: ngo, message: "NGO already approved" });
     }
 
     ngo.status = "approved";
@@ -183,9 +200,17 @@ const approveNGO = async (req, res) => {
 // Admin Reject NGO
 const rejectNGO = async (req, res) => {
   try {
+    if (!isValidObjectId(req.params.id)) {
+      return res.status(400).json(errorResponse("Invalid NGO ID. Expected a Mongo ObjectId.", "INVALID_NGO_ID"));
+    }
+
     const ngo = await NGO.findById(req.params.id);
     if (!ngo) {
       return res.status(404).json(errorResponse("NGO not found", "NOT_FOUND"));
+    }
+
+    if (ngo.status === "rejected" && ngo.verificationStatus === "rejected") {
+      return res.status(200).json({ success: true, data: ngo, message: "NGO already rejected" });
     }
 
     ngo.status = "rejected";

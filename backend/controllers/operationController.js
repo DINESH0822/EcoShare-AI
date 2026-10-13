@@ -3,6 +3,7 @@ const Food = require("../models/Food");
 const NGO = require("../models/NGO");
 const Volunteer = require("../models/Volunteer");
 const { successResponse, errorResponse } = require("../utils/apiResponse");
+const { isValidObjectId } = require("../utils/idValidation");
 const { logAudit } = require("../services/audit");
 const { sendNotification } = require("../services/notification");
 
@@ -21,29 +22,69 @@ const VALID_TRANSITIONS = {
   "cancelled": []
 };
 
+const getReferenceId = (value) => value?._id || value;
+
+const getUserNgo = async (user) => {
+  if (user.ngoId) {
+    const linkedNgo = await NGO.findById(user.ngoId);
+    if (linkedNgo) return linkedNgo;
+  }
+  return NGO.findOne({ userId: user._id });
+};
+
+const getOperationVolunteerId = (operation) => getReferenceId(operation?.assignedVolunteer || operation?.volunteerId);
+const getOperationNgoId = (operation) => getReferenceId(operation?.assignedNgo || operation?.ngoId);
+
+const canAccessOperation = async (user, operation) => {
+  if (user.role === "Admin") return true;
+
+  if (user.role === "Donor") {
+    const foodId = getReferenceId(operation.foodId);
+    return Boolean(await Food.exists({ _id: foodId, donorId: user._id }));
+  }
+
+  if (user.role === "NGO") {
+    const ngoId = getOperationNgoId(operation);
+    const ngo = await getUserNgo(user);
+    return Boolean(ngo && String(ngo._id) === String(ngoId));
+  }
+
+  if (user.role === "Volunteer") {
+    return String(getOperationVolunteerId(operation) || "") === String(user._id);
+  }
+
+  return false;
+};
+
 // Get all operations
 const getOperations = async (req, res) => {
   try {
     const { status } = req.query;
-    let query = {};
+    const query = {};
 
     if (status) query.status = status;
 
     if (req.user.role === "NGO") {
-      const ngo = await NGO.findOne({ user: req.user._id });
-      if (ngo) query.ngoId = ngo._id;
+      const ngo = await getUserNgo(req.user);
+      if (!ngo) return res.status(200).json(successResponse([], "Operations fetched successfully"));
+      query.ngoId = ngo._id;
     } else if (req.user.role === "Donor") {
-      const foods = await Food.find({ donor: req.user._id }).select("_id");
+      const foods = await Food.find({ donorId: req.user._id }).select("_id");
       query.foodId = { $in: foods.map(f => f._id) };
     } else if (req.user.role === "Volunteer") {
-      const vol = await Volunteer.findOne({ user: req.user._id });
-      if (vol) query.assignedVolunteer = vol._id;
+      const volunteer = await Volunteer.findOne({ userId: req.user._id }).select("_id");
+      if (!volunteer) return res.status(200).json(successResponse([], "Operations fetched successfully"));
+      query.volunteerId = req.user._id;
+    } else if (req.user.role !== "Admin") {
+      return res.status(403).json(errorResponse("Your role cannot view rescue operations.", "FORBIDDEN_OPERATION_ACCESS"));
     }
 
     const operations = await Operation.find(query)
       .populate("foodId")
       .populate("ngoId")
-      .populate("assignedVolunteer")
+      .populate("assignedNgo")
+      .populate("volunteerId", "name email phone role")
+      .populate("assignedVolunteer", "name email phone role")
       .sort({ updatedAt: -1 });
 
     return res.status(200).json(successResponse(operations, "Operations fetched successfully"));
@@ -55,13 +96,23 @@ const getOperations = async (req, res) => {
 // Get operation by ID
 const getOperationById = async (req, res) => {
   try {
+    if (!isValidObjectId(req.params.id)) {
+      return res.status(400).json(errorResponse("Invalid operation ID. Expected a Mongo ObjectId.", "INVALID_OPERATION_ID"));
+    }
+
     const operation = await Operation.findById(req.params.id)
       .populate("foodId")
       .populate("ngoId")
-      .populate("assignedVolunteer");
+      .populate("assignedNgo")
+      .populate("volunteerId", "name email phone role")
+      .populate("assignedVolunteer", "name email phone role");
 
     if (!operation) {
       return res.status(404).json(errorResponse("Operation not found", "NOT_FOUND"));
+    }
+
+    if (!(await canAccessOperation(req.user, operation))) {
+      return res.status(403).json(errorResponse("You are not allowed to view this operation.", "FORBIDDEN_OPERATION_ACCESS"));
     }
 
     return res.status(200).json(successResponse(operation));
@@ -73,6 +124,10 @@ const getOperationById = async (req, res) => {
 // Update operation status with strict state machine validation
 const updateOperationStatus = async (req, res) => {
   try {
+    if (!isValidObjectId(req.params.id)) {
+      return res.status(400).json(errorResponse("Invalid operation ID. Expected a Mongo ObjectId.", "INVALID_OPERATION_ID"));
+    }
+
     const { status, note, proofPhoto, temperatureAtPickup } = req.body;
     const operation = await Operation.findById(req.params.id).populate("foodId");
 
@@ -80,12 +135,8 @@ const updateOperationStatus = async (req, res) => {
       return res.status(404).json(errorResponse("Operation not found", "NOT_FOUND"));
     }
 
-    // Role check: Volunteers can only update operations assigned to them
-    if (req.user.role === "Volunteer") {
-      const vol = await Volunteer.findOne({ user: req.user._id });
-      if (!vol || (operation.assignedVolunteer && String(operation.assignedVolunteer) !== String(vol._id))) {
-        return res.status(403).json(errorResponse("Volunteers can only update operations assigned to them.", "FORBIDDEN_OPERATION_ACCESS"));
-      }
+    if (!( ["Admin", "NGO", "Volunteer"].includes(req.user.role)) || !(await canAccessOperation(req.user, operation))) {
+      return res.status(403).json(errorResponse("You are not allowed to update this operation.", "FORBIDDEN_OPERATION_ACCESS"));
     }
 
     const previousStatus = operation.status;
@@ -110,21 +161,24 @@ const updateOperationStatus = async (req, res) => {
       note: note || `Status transitioned to ${status}`
     });
 
-    if (proofPhoto) {
-      operation.proofOfPickup = proofPhoto;
-    }
+    if (proofPhoto) operation.pickupPhotoUrl = proofPhoto;
 
-    if (status === "collected" && temperatureAtPickup) {
-      operation.temperatureAtPickup = temperatureAtPickup;
+    if (temperatureAtPickup !== undefined && temperatureAtPickup !== null && temperatureAtPickup !== "") {
+      const parsedTemperature = Number(temperatureAtPickup);
+      if (!Number.isFinite(parsedTemperature)) {
+        return res.status(400).json(errorResponse("Pickup temperature must be a number in Celsius.", "INVALID_TEMPERATURE"));
+      }
+      operation.temperatureAtPickup = parsedTemperature;
       if (operation.foodId) {
         operation.foodId.temperatureChecked = true;
-        operation.foodId.storageConditionVerified = true;
         await operation.foodId.save();
       }
     }
 
+    if (status === "collected") operation.pickupTimestamp = operation.pickupTimestamp || new Date();
+
     if (status === "completed") {
-      operation.completedAt = new Date();
+      operation.deliveryTimestamp = operation.deliveryTimestamp || new Date();
       if (operation.foodId) {
         operation.foodId.status = "completed";
         operation.foodId.lifecycleState = "completed";
@@ -158,19 +212,47 @@ const updateOperationStatus = async (req, res) => {
 // Assign volunteer to operation
 const assignVolunteer = async (req, res) => {
   try {
+    if (!isValidObjectId(req.params.id)) {
+      return res.status(400).json(errorResponse("Invalid operation ID. Expected a Mongo ObjectId.", "INVALID_OPERATION_ID"));
+    }
+
     const { volunteerId } = req.body;
+    if (!isValidObjectId(volunteerId)) {
+      return res.status(400).json(errorResponse("A valid volunteer profile ID is required.", "INVALID_VOLUNTEER_ID"));
+    }
+
     const operation = await Operation.findById(req.params.id);
 
     if (!operation) {
       return res.status(404).json(errorResponse("Operation not found", "NOT_FOUND"));
+    }
+    if (!["claimed", "matched", "pickup_scheduled"].includes(operation.status)) {
+      return res.status(409).json(errorResponse("A volunteer can only be assigned before pickup has started.", "OPERATION_NOT_ASSIGNABLE"));
     }
 
     const volunteer = await Volunteer.findById(volunteerId);
     if (!volunteer) {
       return res.status(404).json(errorResponse("Volunteer not found", "NOT_FOUND"));
     }
+    if (!volunteer.userId) {
+      return res.status(409).json(errorResponse("Volunteer profile is not linked to a user account.", "VOLUNTEER_USER_REQUIRED"));
+    }
+    if (volunteer.status !== "active" || (!volunteer.isAvailable && String(volunteer.currentOperationId || "") !== String(operation._id))) {
+      return res.status(409).json(errorResponse("The volunteer is not currently available for assignment.", "VOLUNTEER_UNAVAILABLE"));
+    }
 
-    operation.assignedVolunteer = volunteer._id;
+    if (operation.volunteerId && String(operation.volunteerId) !== String(volunteer.userId)) {
+      const previousVolunteer = await Volunteer.findOne({ userId: operation.volunteerId, currentOperationId: operation._id });
+      if (previousVolunteer) {
+        previousVolunteer.currentOperationId = undefined;
+        previousVolunteer.isAvailable = true;
+        await previousVolunteer.save();
+      }
+    }
+
+    operation.volunteerId = volunteer.userId;
+    operation.assignedVolunteer = volunteer.userId;
+    operation.volunteerName = volunteer.name;
     operation.status = "pickup_scheduled";
     operation.timeline.push({
       status: "pickup_scheduled",
@@ -182,11 +264,12 @@ const assignVolunteer = async (req, res) => {
 
     await operation.save();
 
-    volunteer.currentAssignmentsCount += 1;
+    volunteer.currentOperationId = operation._id;
+    volunteer.isAvailable = false;
     await volunteer.save();
 
     await sendNotification({
-      recipient: volunteer.user,
+      recipient: volunteer.userId,
       type: "volunteer_assigned",
       title: "New Pickup Assigned",
       message: `You have been assigned to food pickup operation ${operation._id}`,

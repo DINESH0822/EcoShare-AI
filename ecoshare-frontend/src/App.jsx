@@ -1,5 +1,6 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
+import { useEffect } from "react";
 
 import Dashboard from "./pages/Dashboard";
 import Donations from "./pages/Donations";
@@ -24,23 +25,35 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import RoleRoute from "./components/RoleRoute";
 import { DemoProvider } from "./config/DemoContext";
 
+function ScrollToTop() {
+  const location = useLocation();
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+    window.history.scrollRestoration = "manual";
+  }, [location.pathname]);
+
+  return null;
+}
+
 function App() {
   return (
     <DemoProvider>
       <BrowserRouter>
+        <ScrollToTop />
         <Toaster
           position="top-right"
           toastOptions={{
             duration: 3500,
             style: {
-              background: "#0f172a",
-              color: "#f8fafc",
-              border: "1px solid #1e293b",
+              background: "#ffffff",
+              color: "#142a21",
+              border: "1px solid rgba(16, 87, 57, 0.12)",
               borderRadius: "14px",
-              fontFamily: "'Plus Jakarta Sans', sans-serif",
+              fontFamily: "'Inter', system-ui, sans-serif",
               fontSize: "0.85rem",
               fontWeight: "600",
-              boxShadow: "0 20px 25px -5px rgba(0,0,0,0.5)",
+              boxShadow: "0 16px 30px rgba(11, 66, 47, 0.12)",
             },
           }}
         />

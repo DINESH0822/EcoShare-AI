@@ -11,7 +11,7 @@ const getVolunteers = async (req, res) => {
     if (vehicleType) query.vehicleType = vehicleType;
 
     const volunteers = await Volunteer.find(query)
-      .populate("user", "name email phone role")
+      .populate("userId", "name email phone role")
       .sort({ rating: -1, completedPickups: -1 });
 
     return res.status(200).json(successResponse(volunteers, "Volunteers retrieved"));
@@ -22,7 +22,7 @@ const getVolunteers = async (req, res) => {
 
 const getVolunteerProfile = async (req, res) => {
   try {
-    let volunteer = await Volunteer.findOne({ user: req.user._id }).populate("user", "name email phone");
+    let volunteer = await Volunteer.findOne({ userId: req.user._id }).populate("userId", "name email phone");
     if (!volunteer) {
       return res.status(404).json(errorResponse("Volunteer profile not found for this user", "NOT_FOUND"));
     }
@@ -36,21 +36,19 @@ const registerVolunteer = async (req, res) => {
   try {
     const { vehicleType, maxServiceRadiusKm, availability, emergencyContact, preferredAreas } = req.body;
 
-    let existing = await Volunteer.findOne({ user: req.user._id });
+    let existing = await Volunteer.findOne({ userId: req.user._id });
     if (existing) {
       return res.status(400).json(errorResponse("Volunteer profile already exists", "ALREADY_EXISTS"));
     }
 
     const volunteer = await Volunteer.create({
-      user: req.user._id,
+      userId: req.user._id,
       name: req.user.name,
       email: req.user.email,
       phone: req.user.phone || "",
       vehicleType: vehicleType || "motorcycle",
-      maxServiceRadiusKm: maxServiceRadiusKm || 15,
+      serviceRadius: maxServiceRadiusKm || 15,
       availability: availability || {},
-      emergencyContact: emergencyContact || {},
-      preferredAreas: preferredAreas || [],
       status: "active"
     });
 
@@ -77,21 +75,19 @@ const updateVolunteerStatus = async (req, res) => {
   try {
     const { status, maxServiceRadiusKm, isAvailableNow, currentLat, currentLng } = req.body;
 
-    const volunteer = await Volunteer.findOne({ user: req.user._id });
+    const volunteer = await Volunteer.findOne({ userId: req.user._id });
     if (!volunteer) {
       return res.status(404).json(errorResponse("Volunteer profile not found", "NOT_FOUND"));
     }
 
     if (status) volunteer.status = status;
-    if (maxServiceRadiusKm) volunteer.maxServiceRadiusKm = maxServiceRadiusKm;
-    if (typeof isAvailableNow === "boolean") volunteer.isAvailableNow = isAvailableNow;
+    if (maxServiceRadiusKm !== undefined) volunteer.serviceRadius = Number(maxServiceRadiusKm);
+    if (typeof isAvailableNow === "boolean") volunteer.isAvailable = isAvailableNow;
 
-    if (currentLat && currentLng) {
-      volunteer.currentLocation = {
-        lat: currentLat,
-        lng: currentLng,
-        lastUpdated: new Date()
-      };
+    if (currentLat !== undefined && currentLng !== undefined) {
+      volunteer.currentLat = Number(currentLat);
+      volunteer.currentLng = Number(currentLng);
+      volunteer.locationUpdatedAt = new Date();
     }
 
     await volunteer.save();

@@ -11,13 +11,13 @@ export default function EmptyState({
   const navigate = useNavigate();
 
   return (
-    <div className="bg-slate-900/40 border border-slate-800 rounded-2xl p-12 text-center flex flex-col items-center justify-center space-y-4">
-      <div className="w-16 h-16 rounded-2xl bg-slate-800/80 border border-slate-700 flex items-center justify-center text-slate-400">
+    <div className="bg-[var(--surface)] border border-[var(--border)] rounded-2xl p-12 text-center flex flex-col items-center justify-center space-y-4">
+      <div className="w-16 h-16 rounded-2xl bg-[var(--surface-soft)] border border-[var(--border)] flex items-center justify-center text-[var(--text-secondary)]">
         <Inbox className="w-8 h-8" />
       </div>
       <div>
-        <h3 className="text-lg font-bold text-white">{title}</h3>
-        <p className="text-xs text-slate-400 mt-1 max-w-md mx-auto">{description}</p>
+        <h3 className="text-lg font-bold text-[var(--text)]">{title}</h3>
+        <p className="text-xs text-[var(--text-secondary)] mt-1 max-w-md mx-auto">{description}</p>
       </div>
       {actionLabel && actionRoute && (
         <button

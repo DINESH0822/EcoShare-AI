@@ -31,7 +31,7 @@ export default function OperationDetail() {
 
     if (isDemoMode) {
       setOperation({
-        _id: id,
+        _id: id || "507f1f77bcf86cd799439011",
         status: "en_route",
         assignedNgoName: "Robin Hood Army - BKC Chapter",
         temperatureAtPickup: 64,

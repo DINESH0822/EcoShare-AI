@@ -4,11 +4,11 @@ import axios from "axios";
 import { useAuth } from "../config/AuthContext";
 import toast from "react-hot-toast";
 import { motion } from "framer-motion";
-import { Eye, EyeOff, Leaf, Mail, Lock, ArrowRight } from "lucide-react";
+import { Eye, EyeOff, Leaf, Mail, Lock, ShieldCheck, HeartHandshake, Settings2, ArrowRight } from "lucide-react";
 
 function Login({ role: propRole }) {
   const location = useLocation();
-  const defaultRole = useMemo(() => {
+  const initialRole = useMemo(() => {
     const path = location.pathname;
     if (path.includes("/donor/")) return "Donor";
     if (path.includes("/ngo/")) return "NGO";
@@ -16,6 +16,7 @@ function Login({ role: propRole }) {
     return propRole || "Donor";
   }, [location.pathname, propRole]);
 
+  const [selectedRole, setSelectedRole] = useState(initialRole);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -27,28 +28,59 @@ function Login({ role: propRole }) {
     e.preventDefault();
     setLoading(true);
     try {
-      const endpoint = defaultRole === "NGO"
+      const endpoint = selectedRole === "NGO"
         ? `${API_BASE}/api/auth/ngo/login`
-        : defaultRole === "Admin"
+        : selectedRole === "Admin"
           ? `${API_BASE}/api/users/login`
           : `${API_BASE}/api/auth/donor/login`;
 
-      const payload = defaultRole === "Admin"
-        ? { email, password }
-        : { email, password };
+      const payload = { email: email.trim().toLowerCase(), password };
 
       const res = await axios.post(endpoint, payload);
       const authData = res.data?.data || res.data;
       const user = authData?.user || authData;
+      
+      // Verification check for Admin role login
+      if (selectedRole === "Admin" && user.role !== "Admin") {
+        toast.error("Unauthorized: This account does not possess Admin privileges.");
+        setLoading(false);
+        return;
+      }
+
       login({ ...user, token: authData?.token || user?.token });
       toast.success(`Welcome back, ${user.name || "there"}!`);
-      navigate(defaultRole === "NGO" ? "/ngo/dashboard" : defaultRole === "Admin" ? "/admin" : "/dashboard");
+
+      if (user.role === "Admin" || selectedRole === "Admin") {
+        navigate("/admin");
+      } else if (user.role === "NGO" || selectedRole === "NGO") {
+        navigate("/ngo/dashboard");
+      } else {
+        navigate("/dashboard");
+      }
     } catch (err) {
-      toast.error(err.response?.data?.message || "Invalid email or password");
+      toast.error(err.response?.data?.message || "Invalid credentials. Please verify your email and password.");
     } finally {
       setLoading(false);
     }
   };
+
+  const roles = [
+    {
+      id: "Donor",
+      label: "Food Donor",
+      icon: <HeartHandshake className="w-4 h-4 text-[#087443]" />
+    },
+    {
+      id: "NGO",
+      label: "NGO Partner",
+      icon: <ShieldCheck className="w-4 h-4 text-[#1E8E6A]" />
+    },
+    {
+      id: "Admin",
+      label: "Platform Admin",
+      icon: <Settings2 className="w-4 h-4 text-[#426F9D]" />
+    }
+  ];
 
   return (
     <div className="auth-wrapper relative min-h-screen flex items-center justify-center p-4 sm:p-6 lg:p-8">
@@ -82,16 +114,16 @@ function Login({ role: propRole }) {
 
           <div className="auth-metrics">
             <div>
-              <strong>2.4k</strong>
+              <strong>2.4k+</strong>
               <span>Meals rescued</span>
             </div>
             <div>
-              <strong>94%</strong>
-              <span>Success rate</span>
+              <strong>100%</strong>
+              <span>Audit trail</span>
             </div>
             <div>
-              <strong>12</strong>
-              <span>Active zones</span>
+              <strong>Verified</strong>
+              <span>FSSAI aligned</span>
             </div>
           </div>
         </div>
@@ -99,7 +131,27 @@ function Login({ role: propRole }) {
         <div className="auth-form-panel">
           <div className="auth-form-header">
             <p className="auth-form-kicker">Account access</p>
-            <h2>Sign in</h2>
+            <h2>Sign in to EcoShare AI</h2>
+            <p className="text-xs text-[var(--text-secondary)] mt-1">Select your portal role to access authorized tools</p>
+          </div>
+
+          {/* Role selector tabs */}
+          <div className="grid grid-cols-3 gap-2 p-1 bg-[#F3FAF5] border border-[#DDEBD9] rounded-xl mb-4">
+            {roles.map((r) => (
+              <button
+                key={r.id}
+                type="button"
+                onClick={() => setSelectedRole(r.id)}
+                className={`flex items-center justify-center gap-1.5 py-2 px-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  selectedRole === r.id
+                    ? "bg-white text-[#142A21] border border-[#B8D7BE] shadow-sm"
+                    : "text-[#5F6F63] hover:text-[#142A21]"
+                }`}
+              >
+                {r.icon}
+                <span>{r.label}</span>
+              </button>
+            ))}
           </div>
 
           <form onSubmit={handleLogin} className="auth-form">
@@ -110,7 +162,7 @@ function Login({ role: propRole }) {
                 <input
                   id="login-email"
                   type="email"
-                  placeholder="you@example.com"
+                  placeholder={selectedRole === "Admin" ? "admin@ecoshare.org" : "you@example.com"}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
@@ -143,28 +195,38 @@ function Login({ role: propRole }) {
                 <input type="checkbox" defaultChecked />
                 <span>Remember me</span>
               </label>
-              <button type="button" className="text-link">Forgot password?</button>
+              <span className="text-xs text-[var(--text-secondary)]">
+                {selectedRole === "Admin" ? "Protected admin portal" : "Protected access"}
+              </span>
             </div>
 
             <button type="submit" className="btn-primary auth-submit" disabled={loading}>
               {loading ? (
                 <>
                   <span className="spinner" />
-                  Signing in...
+                  Authenticating...
                 </>
               ) : (
                 <>
-                  Sign In
+                  Sign In as {selectedRole}
                   <ArrowRight className="w-4 h-4" />
                 </>
               )}
             </button>
           </form>
 
-          <p className="auth-signup">
-            New to EcoShare AI?
-            <Link to="/register">Create an account</Link>
-          </p>
+          {selectedRole !== "Admin" ? (
+            <p className="auth-signup">
+              New to EcoShare AI?{" "}
+              <Link to={selectedRole === "NGO" ? "/ngo/register" : "/register"}>
+                Create an account
+              </Link>
+            </p>
+          ) : (
+            <p className="text-center text-xs text-[var(--text-secondary)] mt-4">
+              Admin credentials are provisioned via server environment variables.
+            </p>
+          )}
         </div>
       </motion.div>
     </div>

@@ -70,14 +70,14 @@ const ngoSchema = mongoose.Schema(
     alternatePhone: { type: String, default: "" },
 
     // Location
-    address: { type: String, required: true },
+    address: { type: String, default: "" },
     city: { type: String, default: "" },
     state: { type: String, default: "" },
     pincode: { type: String, default: "" },
     district: { type: String, default: "" },
     country: { type: String, default: "India" },
-    latitude: { type: Number, required: true },
-    longitude: { type: Number, required: true },
+    latitude: { type: Number, default: 0 },
+    longitude: { type: Number, default: 0 },
     location: { type: String }, // legacy
 
     // Operational capabilities

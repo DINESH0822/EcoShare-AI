@@ -1,4 +1,4 @@
-import React from "react";
+﻿import React from "react";
 import { Link } from "react-router-dom";
 import {
   Leaf,
@@ -8,263 +8,262 @@ import {
   HeartHandshake,
   CheckCircle2,
   ArrowRight,
-  TrendingUp,
   AlertTriangle,
-  Users,
-  Compass,
+  Sparkles,
+  ClipboardCheck,
+  MapPin
 } from "lucide-react";
 
 export default function Landing() {
+  const steps = [
+    {
+      num: "01",
+      title: "List surplus food",
+      desc: "Share what is available, how it should be handled, and when it can be collected.",
+      icon: <HeartHandshake className="h-5 w-5 text-[#087443]" />
+    },
+    {
+      num: "02",
+      title: "Find a suitable partner",
+      desc: "Use location and donation details to help connect food with an organization that can receive it.",
+      icon: <Cpu className="h-5 w-5 text-[#1E8E6A]" />
+    },
+    {
+      num: "03",
+      title: "Confirm the collection",
+      desc: "The receiving organization reviews the listing and coordinates the pickup with the donor.",
+      icon: <ShieldCheck className="h-5 w-5 text-[#426F9D]" />
+    },
+    {
+      num: "04",
+      title: "Complete the handoff",
+      desc: "Record collection and delivery progress so everyone can follow the rescue through to handoff.",
+      icon: <Truck className="h-5 w-5 text-[#12A66A]" />
+    }
+  ];
+
+  const roleFeatures = [
+    {
+      role: "Donors",
+      tagline: "Restaurants, grocers, caterers, and local businesses",
+      description: "List safe surplus food and coordinate a convenient collection with a receiving organization.",
+      ctaText: "Donate Food",
+      ctaLink: "/donor/register",
+      icon: <HeartHandshake className="h-5 w-5 text-[#087443]" />,
+      accent: "border-[#DDEBD9] bg-[#F7FBF7]"
+    },
+    {
+      role: "NGOs",
+      tagline: "Food banks, shelters, and community kitchens",
+      description: "Register your organization, review available donations, and coordinate the food your community needs.",
+      ctaText: "NGO Registration",
+      ctaLink: "/ngo/register",
+      icon: <ShieldCheck className="h-5 w-5 text-[#1E8E6A]" />,
+      accent: "border-[#DDEBD9] bg-[#EEF8F5]"
+    },
+    {
+      role: "Volunteers",
+      tagline: "People helping food reach local communities",
+      description: "Sign in to access the existing volunteer and operations workflows for food rescue coordination.",
+      ctaText: "Volunteer Portal",
+      ctaLink: "/login",
+      icon: <Truck className="h-5 w-5 text-[#426F9D]" />,
+      accent: "border-[#DDEBD9] bg-[#F3F8FE]"
+    }
+  ];
+
   return (
-    <div className="min-h-screen bg-[#06111F] text-[#F1F5F9] font-sans selection:bg-[#10B981]/30">
-      {/* Top Navigation */}
-      <header className="border-b border-[#20364D]/70 bg-[#071525]/90 backdrop-blur-md sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-18 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-3 no-underline">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-[#10B981] to-[#3B82F6] flex items-center justify-center text-white shadow-lg shadow-[#10B981]/20">
-              <Leaf className="w-5 h-5" />
-            </div>
-            <div>
-              <span className="text-lg font-bold tracking-tight text-[#F1F5F9]">
-                EcoShare <span className="text-[#10B981]">AI</span>
-              </span>
-              <span className="block text-[10px] tracking-wider uppercase font-semibold text-[#9CAFC3]">
-                Intelligent Food Rescue Network
-              </span>
-            </div>
+    <div className="min-h-screen overflow-x-hidden bg-[#F4F8F2] text-[#142A21] font-sans selection:bg-[#10B981]/20">
+      <header className="sticky top-0 z-50 border-b border-[#DDEBD9] bg-[#F9FBF8]/90 backdrop-blur-md">
+        <div className="mx-auto flex h-[68px] max-w-7xl items-center justify-between gap-2 px-3 max-[360px]:gap-1 max-[360px]:px-2 sm:h-[76px] sm:gap-4 sm:px-8 lg:px-12">
+          <Link to="/" aria-label="EcoShare AI home" className="flex shrink-0 items-center gap-2 rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-emerald-600 max-[360px]:gap-1.5 sm:gap-3">
+            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-[#10B981] to-[#0D8A68] text-[#061F15] max-[360px]:h-8 max-[360px]:w-8 sm:h-10 sm:w-10">
+              <Leaf className="h-5 w-5" />
+            </span>
+            <span>
+              <span className="block text-base font-bold text-[#142A21] max-[360px]:text-sm sm:text-lg">EcoShare <span className="text-[#087443]">AI</span></span>
+              <span className="hidden text-[10px] font-semibold uppercase tracking-[0.12em] text-[#64746A] sm:block">Food rescue network</span>
+            </span>
           </Link>
 
-          <nav className="hidden md:flex items-center gap-6 text-sm font-medium text-[#9CAFC3]">
-            <a href="#how-it-works" className="hover:text-[#F1F5F9] transition-colors">
-              How It Works
-            </a>
-            <a href="#food-safety" className="hover:text-[#F1F5F9] transition-colors">
-              Food Safety
-            </a>
-            <a href="#ai-engine" className="hover:text-[#F1F5F9] transition-colors">
-              AI Matching
-            </a>
-            <a href="#impact" className="hover:text-[#F1F5F9] transition-colors">
-              Impact
-            </a>
+          <nav aria-label="Main navigation" className="hidden items-center gap-5 text-sm font-medium text-[#4F6258] lg:flex">
+            <a href="#how-it-works" className="rounded-sm transition-colors hover:text-[#087443] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-emerald-600">How It Works</a>
+            <a href="#roles" className="rounded-sm transition-colors hover:text-[#087443] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-emerald-600">Portals</a>
+            <a href="#safety" className="rounded-sm transition-colors hover:text-[#087443] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-emerald-600">Food Safety</a>
+            <Link to="/ngos" className="rounded-sm transition-colors hover:text-[#087443] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-emerald-600">NGO Directory</Link>
+            <Link to="/sustainability" className="rounded-sm transition-colors hover:text-[#087443] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-emerald-600">Impact</Link>
           </nav>
 
-          <div className="flex items-center gap-3">
-            <Link
-              to="/login"
-              className="text-sm font-semibold px-4 py-2 rounded-lg text-[#F1F5F9] hover:bg-[#122840] transition-colors border border-transparent hover:border-[#20364D]"
-            >
-              Log In
-            </Link>
-            <Link
-              to="/register"
-              className="text-sm font-semibold px-4 py-2 rounded-lg bg-[#10B981] text-[#06111F] hover:bg-[#10B981]/90 shadow-md shadow-[#10B981]/20 transition-all"
-            >
-              Get Started
+          <div className="flex shrink-0 items-center gap-1.5 max-[360px]:gap-1 sm:gap-3">
+            <Link to="/login" className="inline-flex min-h-10 items-center justify-center rounded-lg border border-[#D9E6D8] bg-white px-2.5 text-xs font-semibold text-[#142A21] transition-colors hover:border-[#B8D7BE] hover:bg-[#F1F8F3] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600 max-[360px]:px-2 sm:px-4 sm:text-sm">Sign In</Link>
+            <Link to="/register" aria-label="Get Started" title="Get Started" className="inline-flex min-h-10 items-center justify-center gap-1 rounded-lg bg-[#087443] px-2.5 text-xs font-bold text-white transition-colors hover:bg-[#065D38] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-800 max-[360px]:px-2 sm:gap-1.5 sm:px-4 sm:text-sm">
+              <span className="hidden sm:inline">Get Started</span><span className="max-[360px]:hidden sm:hidden">Join</span><ArrowRight className="h-4 w-4" />
             </Link>
           </div>
         </div>
       </header>
 
-      {/* Hero Section */}
-      <section className="relative overflow-hidden pt-16 pb-24 lg:pt-28 lg:pb-36">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(16,185,129,0.15),rgba(255,255,255,0))]" />
-        
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-[#122840] border border-[#20364D] text-[#10B981] mb-6">
-            <Cpu className="w-3.5 h-3.5" />
-            <span>Explainable AI & Machine Learning Logistics</span>
-          </div>
-
-          <h1 className="text-4xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight text-[#F1F5F9] max-w-4xl mx-auto leading-tight">
-            Connecting surplus food to verified rescue organizations in{" "}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#10B981] via-[#3B82F6] to-[#8B5CF6]">
-              real time.
-            </span>
-          </h1>
-
-          <p className="mt-6 text-lg sm:text-xl text-[#9CAFC3] max-w-2xl mx-auto leading-relaxed">
-            EcoShare AI eliminates hunger and reduces landfill emissions through supervised
-            ML claim matching, cold-chain compliance verification, and transparent operations tracking.
-          </p>
-
-          {/* Role CTA Split */}
-          <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Link
-              to="/donor/register"
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl font-bold bg-[#10B981] text-[#06111F] hover:bg-[#10B981]/90 transition-all shadow-lg shadow-[#10B981]/25"
-            >
-              <span>Donate Surplus Food</span>
-              <ArrowRight className="w-4 h-4" />
-            </Link>
-            <Link
-              to="/ngo/register"
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl font-bold bg-[#0D1E31] text-[#F1F5F9] border border-[#20364D] hover:bg-[#122840] hover:border-[#3B82F6]/50 transition-all"
-            >
-              <span>Join as Verified NGO</span>
-              <ShieldCheck className="w-4 h-4 text-[#3B82F6]" />
-            </Link>
-          </div>
-
-          {/* Quick Metrics Bar */}
-          <div className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto text-left">
-            <div className="bg-[#0D1E31]/70 border border-[#20364D] rounded-xl p-4">
-              <div className="text-2xl font-black text-[#10B981]">100%</div>
-              <div className="text-xs text-[#9CAFC3] mt-1 font-medium">Traceable End-to-End</div>
-            </div>
-            <div className="bg-[#0D1E31]/70 border border-[#20364D] rounded-xl p-4">
-              <div className="text-2xl font-black text-[#3B82F6]">&lt; 30 min</div>
-              <div className="text-xs text-[#9CAFC3] mt-1 font-medium">Average Dispatch Window</div>
-            </div>
-            <div className="bg-[#0D1E31]/70 border border-[#20364D] rounded-xl p-4">
-              <div className="text-2xl font-black text-[#8B5CF6]">Random Forest</div>
-              <div className="text-xs text-[#9CAFC3] mt-1 font-medium">Claim Success Predictor</div>
-            </div>
-            <div className="bg-[#0D1E31]/70 border border-[#20364D] rounded-xl p-4">
-              <div className="text-2xl font-black text-[#F59E0B]">FSSAI Aligned</div>
-              <div className="text-xs text-[#9CAFC3] mt-1 font-medium">Food Safety Declarations</div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* How it Works Section */}
-      <section id="how-it-works" className="py-20 bg-[#071525]/60 border-t border-[#20364D]/50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-3xl mx-auto">
-            <span className="text-xs font-bold uppercase tracking-wider text-[#10B981]">
-              Verified Lifecycle
-            </span>
-            <h2 className="text-3xl font-bold tracking-tight text-[#F1F5F9] mt-2">
-              From Kitchen Surplus to Community Meals
-            </h2>
-            <p className="text-sm text-[#9CAFC3] mt-3">
-              One unbroken lifecycle managed by atomic database updates, real-time dispatch, and audited handoffs.
-            </p>
-          </div>
-
-          <div className="mt-14 grid grid-cols-1 md:grid-cols-4 gap-6">
-            <div className="bg-[#0D1E31] border border-[#20364D] rounded-xl p-6 relative">
-              <div className="w-10 h-10 rounded-lg bg-[#10B981]/15 text-[#10B981] flex items-center justify-center font-bold text-lg mb-4">
-                1
+      <main>
+        <section aria-labelledby="hero-title" className="relative isolate overflow-hidden">
+          <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_top_left,rgba(16,185,129,0.15),transparent_38%),radial-gradient(circle_at_bottom_right,rgba(107,191,89,0.12),transparent_30%)]" />
+          <div className="mx-auto grid max-w-7xl items-center gap-12 px-5 pb-16 pt-14 sm:px-8 sm:pb-20 sm:pt-16 lg:grid-cols-[1.05fr_0.95fr] lg:gap-14 lg:px-12 lg:pb-24 lg:pt-20">
+            <div className="max-w-2xl">
+              <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-[#B8D7BE] bg-[#E8F7ED] px-3.5 py-2 text-sm font-semibold text-[#087443]">
+                <Sparkles className="h-4 w-4" /> AI-POWERED • PEOPLE-DRIVEN • ZERO FOOD WASTE
               </div>
-              <h3 className="text-lg font-bold text-[#F1F5F9]">Publish Donation</h3>
-              <p className="text-xs text-[#9CAFC3] mt-2 leading-relaxed">
-                Donor logs quantity, category, preparation time, cold storage needs, and validated GPS coordinates.
+              <h1 id="hero-title" className="min-w-0 w-full max-w-full text-4xl font-extrabold leading-[1.06] text-[#142A21] sm:max-w-[14ch] sm:text-6xl xl:text-7xl">
+                Good food. <span className="text-[#087443]">Better futures.</span>
+              </h1>
+              <p className="mt-6 max-w-xl text-base leading-7 text-[#4F6258] sm:text-lg sm:leading-8">
+                Rescue surplus meals from local kitchens and deliver them to communities that need them.
               </p>
-            </div>
-
-            <div className="bg-[#0D1E31] border border-[#20364D] rounded-xl p-6 relative">
-              <div className="w-10 h-10 rounded-lg bg-[#8B5CF6]/15 text-[#8B5CF6] flex items-center justify-center font-bold text-lg mb-4">
-                2
+              <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+                <Link to="/donor/register" className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-[#087443] px-6 py-3 text-base font-bold text-white shadow-[0_18px_28px_rgba(8,116,67,0.18)] transition-colors hover:bg-[#065D38] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-emerald-700">
+                  Donate Surplus Food <ArrowRight className="h-4 w-4" />
+                </Link>
+                <Link to="/ngo/register" className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border border-[#C9DCCB] bg-white px-6 py-3 text-base font-bold text-[#142A21] transition-colors hover:border-[#A8C6AF] hover:bg-[#F5FBF6] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600">
+                  Find NGO Partners <ShieldCheck className="h-4 w-4 text-[#087443]" />
+                </Link>
               </div>
-              <h3 className="text-lg font-bold text-[#F1F5F9]">AI/ML Matching</h3>
-              <p className="text-xs text-[#9CAFC3] mt-2 leading-relaxed">
-                Rules engine verifies NGO operating hours & capacity, while our ML model ranks claim likelihood.
-              </p>
-            </div>
 
-            <div className="bg-[#0D1E31] border border-[#20364D] rounded-xl p-6 relative">
-              <div className="w-10 h-10 rounded-lg bg-[#3B82F6]/15 text-[#3B82F6] flex items-center justify-center font-bold text-lg mb-4">
-                3
+              <div className="mt-8 flex flex-wrap gap-4 text-sm font-medium text-[#475D51]">
+                {[
+                  "Reduce food waste",
+                  "Support local communities",
+                  "Build a greener India"
+                ].map((item) => (
+                  <div key={item} className="inline-flex items-center gap-2 rounded-full border border-[#DDEBD9] bg-white px-3 py-2">
+                    <CheckCircle2 className="h-4 w-4 text-[#12A66A]" />
+                    {item}
+                  </div>
+                ))}
               </div>
-              <h3 className="text-lg font-bold text-[#F1F5F9]">Verified NGO Claim</h3>
-              <p className="text-xs text-[#9CAFC3] mt-2 leading-relaxed">
-                Verified NGO reviews safety parameters and claims surplus; operation dispatch triggers instantly.
-              </p>
             </div>
 
-            <div className="bg-[#0D1E31] border border-[#20364D] rounded-xl p-6 relative">
-              <div className="w-10 h-10 rounded-lg bg-[#10B981]/15 text-[#10B981] flex items-center justify-center font-bold text-lg mb-4">
-                4
-              </div>
-              <h3 className="text-lg font-bold text-[#F1F5F9]">Pickup & Delivery</h3>
-              <p className="text-xs text-[#9CAFC3] mt-2 leading-relaxed">
-                Driver records timestamped proof of collection and delivery, completing the food safety audit trail.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Food Safety & FSSAI Guidelines */}
-      <section id="food-safety" className="py-20 border-t border-[#20364D]/50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="bg-gradient-to-r from-[#0D1E31] to-[#122840] border border-[#20364D] rounded-2xl p-8 sm:p-12">
-            <div className="flex items-center gap-3 text-[#F59E0B]">
-              <AlertTriangle className="w-6 h-6" />
-              <span className="text-sm font-bold uppercase tracking-wider">
-                Food Safety & Regulatory Compliance
-              </span>
-            </div>
-            <h3 className="text-2xl sm:text-3xl font-bold text-[#F1F5F9] mt-3">
-              FSSAI-Aligned Surplus Food Handling Principles
-            </h3>
-            <p className="text-sm text-[#9CAFC3] mt-3 max-w-3xl leading-relaxed">
-              EcoShare AI requires all participating donors and NGOs to declare temperature controls, allergen flags,
-              and strict consumption deadlines. Note: The platform facilitates operational tracking but does not replace
-              official food inspections or statutory duties under the Food Safety and Standards Act.
-            </p>
-
-            <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="bg-[#06111F]/60 border border-[#20364D]/60 rounded-xl p-4">
-                <div className="text-sm font-bold text-[#F1F5F9] flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-[#10B981]" />
-                  Hot & Cold Holding Checks
+            <div className="mx-auto w-full max-w-[560px] lg:justify-self-end">
+              <div className="rounded-[28px] border border-[#DDEBD9] bg-white p-4 shadow-[0_22px_60px_rgba(8,116,67,0.08)] sm:p-6">
+                <div className="flex flex-wrap items-start justify-between gap-4 border-b border-[#E7EFE7] pb-5">
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#087443]">Illustrative workflow</p>
+                    <h2 className="mt-2 text-xl font-bold text-[#142A21] sm:text-2xl">A shared path from surplus to support</h2>
+                  </div>
+                  <span className="rounded-full border border-[#D9E6D8] bg-[#F3FAF5] px-3 py-1 text-xs font-medium text-[#4F6258]">Conceptual view</span>
                 </div>
-                <p className="text-xs text-[#9CAFC3] mt-1.5">
-                  Cooked meals must remain above 65°C or chilled below 5°C with documented storage details.
-                </p>
-              </div>
 
-              <div className="bg-[#06111F]/60 border border-[#20364D]/60 rounded-xl p-4">
-                <div className="text-sm font-bold text-[#F1F5F9] flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-[#10B981]" />
-                  Mandatory Allergen Labeling
+                <div className="relative mt-6 space-y-4 before:absolute before:bottom-8 before:left-[21px] before:top-8 before:w-px before:bg-gradient-to-b before:from-[#12A66A] before:via-[#85CFA2] before:to-[#BFDDE5]">
+                  <div className="relative flex items-center gap-4 rounded-2xl border border-[#E7EFE7] bg-[#F7FBF7] p-4 sm:p-5">
+                    <span className="z-10 flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#E8F7ED] text-[#087443]"><HeartHandshake className="h-5 w-5" /></span>
+                    <span><span className="block text-sm font-semibold text-[#142A21]">Food donor</span><span className="mt-1 block text-sm text-[#64746A]">Shares a surplus food listing</span></span>
+                    <MapPin className="ml-auto h-4 w-4 shrink-0 text-[#7A8D83]" />
+                  </div>
+                  <div className="relative flex items-center gap-4 rounded-2xl border border-[#E7EFE7] bg-[#F7FBF7] p-4 sm:p-5">
+                    <span className="z-10 flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#E7F4FC] text-[#1E8E6A]"><ShieldCheck className="h-5 w-5" /></span>
+                    <span><span className="block text-sm font-semibold text-[#142A21]">Receiving organization</span><span className="mt-1 block text-sm text-[#64746A]">Reviews and coordinates collection</span></span>
+                    <ArrowRight className="ml-auto h-4 w-4 shrink-0 text-[#7A8D83]" />
+                  </div>
+                  <div className="relative flex items-center gap-4 rounded-2xl border border-[#E7EFE7] bg-[#F7FBF7] p-4 sm:p-5">
+                    <span className="z-10 flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#F4F0FF] text-[#4E7C9D]"><Truck className="h-5 w-5" /></span>
+                    <span><span className="block text-sm font-semibold text-[#142A21]">Volunteer or pickup team</span><span className="mt-1 block text-sm text-[#64746A]">Helps complete the handoff</span></span>
+                    <CheckCircle2 className="ml-auto h-4 w-4 shrink-0 text-[#12A66A]" />
+                  </div>
                 </div>
-                <p className="text-xs text-[#9CAFC3] mt-1.5">
-                  Every donation must explicitly declare nuts, dairy, gluten, and vegetarian or non-vegetarian status.
-                </p>
-              </div>
-
-              <div className="bg-[#06111F]/60 border border-[#20364D]/60 rounded-xl p-4">
-                <div className="text-sm font-bold text-[#F1F5F9] flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-[#10B981]" />
-                  Strict Expiry Enforcements
-                </div>
-                <p className="text-xs text-[#9CAFC3] mt-1.5">
-                  Donations expiring within 60 minutes escalate to Critical status; past-due items are automatically expired.
-                </p>
+                <p className="mt-5 text-xs leading-5 text-[#64746A]">Illustration only. This panel does not display live donation, partner, or delivery data.</p>
               </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* Footer */}
-      <footer className="border-t border-[#20364D]/70 bg-[#071525] py-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-6">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-[#10B981] flex items-center justify-center text-[#06111F] font-bold">
-              <Leaf className="w-4 h-4" />
+        <section aria-label="Platform capabilities" className="border-y border-[#E1EAE0] bg-[#EEF7F1]">
+          <div className="mx-auto grid max-w-7xl grid-cols-2 gap-3 px-5 py-6 sm:px-8 md:grid-cols-4 md:gap-4 lg:px-12">
+            {[
+              { icon: <ClipboardCheck className="h-5 w-5" />, label: "Donation traceability", tone: "text-[#087443]" },
+              { icon: <Cpu className="h-5 w-5" />, label: "Smart matching", tone: "text-[#1E8E6A]" },
+              { icon: <ShieldCheck className="h-5 w-5" />, label: "NGO registration", tone: "text-[#426F9D]" },
+              { icon: <CheckCircle2 className="h-5 w-5" />, label: "Food-safety guidance", tone: "text-[#C4781F]" }
+            ].map((item) => (
+              <div key={item.label} className="flex min-h-[72px] items-center gap-3 rounded-xl border border-[#DDEBD9] bg-white px-3 py-3 sm:px-4">
+                <span className={item.tone}>{item.icon}</span>
+                <span className="text-sm font-semibold leading-5 text-[#1A2C25]">{item.label}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section id="how-it-works" className="scroll-mt-24 px-5 py-16 sm:px-8 sm:py-20 lg:px-12">
+          <div className="mx-auto max-w-7xl">
+            <div className="max-w-2xl">
+              <p className="text-sm font-bold uppercase tracking-[0.14em] text-[#087443]">How It Works</p>
+              <h2 className="mt-3 text-3xl font-bold leading-tight text-[#142A21] sm:text-4xl">A clear path for every food rescue</h2>
+              <p className="mt-4 text-base leading-7 text-[#4F6258]">From the first listing to the final handoff, each participant knows what comes next.</p>
             </div>
-            <span className="text-sm font-bold text-[#F1F5F9]">EcoShare AI</span>
-            <span className="text-xs text-[#9CAFC3]">
-              © {new Date().getFullYear()} Intelligent Food Rescue System
-            </span>
+            <div className="mt-9 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+              {steps.map((step) => (
+                <article key={step.num} className="flex min-h-[220px] flex-col rounded-2xl border border-[#E1EAE0] bg-white p-5 shadow-[0_16px_30px_rgba(20,42,33,0.04)] sm:p-6">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-bold text-[#64746A]">{step.num}</span>
+                    <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-[#DDEBD9] bg-[#F4FBF6] text-[#087443]">{step.icon}</span>
+                  </div>
+                  <h3 className="mt-5 text-lg font-bold text-[#142A21]">{step.title}</h3>
+                  <p className="mt-2 text-sm leading-6 text-[#4F6258]">{step.desc}</p>
+                </article>
+              ))}
+            </div>
           </div>
+        </section>
 
-          <div className="flex items-center gap-6 text-xs text-[#9CAFC3]">
-            <Link to="/login" className="hover:text-[#F1F5F9]">
-              Portal Login
-            </Link>
-            <Link to="/organizations" className="hover:text-[#F1F5F9]">
-              NGO Directory
-            </Link>
-            <Link to="/sustainability" className="hover:text-[#F1F5F9]">
-              Sustainability Methodology
+        <section id="roles" className="scroll-mt-24 border-y border-[#E1EAE0] bg-[#F7FBF7] px-5 py-16 sm:px-8 sm:py-20 lg:px-12">
+          <div className="mx-auto max-w-7xl">
+            <div className="mb-9 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <p className="text-sm font-bold uppercase tracking-[0.14em] text-[#087443]">Get involved</p>
+                <h2 className="mt-3 text-3xl font-bold leading-tight text-[#142A21] sm:text-4xl">One network, three ways to help</h2>
+              </div>
+              <p className="max-w-md text-base leading-7 text-[#4F6258]">Choose the role that fits how you want to support your community.</p>
+            </div>
+            <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
+              {roleFeatures.map((feature) => (
+                <article key={feature.role} className={`flex min-h-[260px] flex-col rounded-2xl border p-6 shadow-[0_14px_24px_rgba(20,42,33,0.03)] sm:p-7 ${feature.accent}`}>
+                  <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-[#DDEBD9] bg-white text-[#087443]">{feature.icon}</div>
+                  <h3 className="mt-5 text-xl font-bold text-[#142A21]">{feature.role}</h3>
+                  <p className="mt-1 text-sm font-medium text-[#4F6258]">{feature.tagline}</p>
+                  <p className="mt-3 flex-1 text-sm leading-6 text-[#4F6258]">{feature.description}</p>
+                  <Link to={feature.ctaLink} className="mt-6 inline-flex min-h-11 items-center justify-center gap-2 self-start rounded-lg border border-[#CFE4D5] bg-white px-4 py-2.5 text-sm font-bold text-[#142A21] transition-colors hover:border-[#9CC3A9] hover:bg-[#F5FBF6] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-emerald-600">
+                    {feature.ctaText} <ArrowRight className="h-4 w-4" />
+                  </Link>
+                </article>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section id="safety" className="scroll-mt-24 px-5 py-12 sm:px-8 sm:py-14 lg:px-12">
+          <div className="mx-auto flex max-w-7xl flex-col gap-5 rounded-2xl border border-[#F0D6A0] bg-[#FFF8DC] p-5 sm:flex-row sm:items-center sm:gap-6 sm:p-7">
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-[#E4C774] bg-[#FFF3C4] text-[#9A6300]"><AlertTriangle className="h-5 w-5" /></span>
+            <div className="flex-1">
+              <h2 className="text-lg font-bold text-[#142A21] sm:text-xl">Food safety comes first</h2>
+              <p className="mt-1 text-sm leading-6 text-[#4F6258]">Share accurate handling and allergen information, and coordinate collection within safe time and storage conditions. The platform supports coordination; food safety decisions remain with participating organizations.</p>
+            </div>
+            <Link to="/donor/register" className="inline-flex min-h-10 shrink-0 items-center justify-center gap-2 self-start rounded-lg border border-[#E3D7B1] bg-white px-4 py-2 text-sm font-semibold text-[#142A21] transition-colors hover:bg-[#F5FBF6] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600 sm:self-center">
+              Donation guidance <ArrowRight className="h-4 w-4" />
             </Link>
           </div>
+        </section>
+      </main>
+
+      <footer className="border-t border-[#E1EAE0] bg-[#F9FBF8]">
+        <div className="mx-auto flex max-w-7xl flex-col gap-5 px-5 py-7 sm:px-8 md:flex-row md:items-center md:justify-between lg:px-12">
+          <Link to="/" className="inline-flex items-center gap-3 self-start rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-emerald-600">
+            <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#087443] text-white"><Leaf className="h-4 w-4" /></span>
+            <span className="text-sm font-bold text-[#142A21]">EcoShare AI</span>
+            <span className="text-sm text-[#64746A]">© {new Date().getFullYear()}</span>
+          </Link>
+          <nav aria-label="Footer navigation" className="flex flex-wrap gap-x-5 gap-y-3 text-sm text-[#4F6258]">
+            <Link to="/login" className="rounded-sm hover:text-[#087443] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-emerald-600">Sign In</Link>
+            <Link to="/donor/register" className="rounded-sm hover:text-[#087443] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-emerald-600">Donate Food</Link>
+            <Link to="/ngo/register" className="rounded-sm hover:text-[#087443] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-emerald-600">NGO Registration</Link>
+            <Link to="/login" className="rounded-sm hover:text-[#087443] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-emerald-600">Volunteer Portal</Link>
+            <Link to="/ngos" className="rounded-sm hover:text-[#087443] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-emerald-600">NGO Directory</Link>
+          </nav>
         </div>
       </footer>
     </div>

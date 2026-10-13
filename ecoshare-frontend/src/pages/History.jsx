@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import axios from "axios";
+import api from "../utils/api";
 import Navbar from "../components/Navbar";
 import DemoModeBanner from "../components/DemoModeBanner";
 import EcoBot from "../components/EcoBot";
@@ -25,7 +25,7 @@ function History() {
       setHistoryLogs([
         { _id: "h-1", action: "created", details: "Donation 'Excess Catering Cooked Rice & Paneer' (120 servings) published.", performedByName: "Grand Hyatt", createdAt: new Date().toISOString() },
         { _id: "h-2", action: "ai_recommended", details: "AI matched with 'Robin Hood Army' (98% confidence score).", performedByName: "EcoShare AI Engine", createdAt: new Date().toISOString() },
-        { _id: "h-3", action: "claimed", details: "Donation claimed by NGO 'Robin Hood Army'. Operation #op-101 initiated.", performedByName: "Robin Hood Army", createdAt: new Date().toISOString() },
+        { _id: "h-3", action: "claimed", details: "Donation claimed by NGO 'Robin Hood Army'. Operation #507f1f77bcf86cd799439011 initiated.", performedByName: "Robin Hood Army", createdAt: new Date().toISOString() },
         { _id: "h-4", action: "pickup", details: "Volunteer Rajesh started pickup from Bandra East location.", performedByName: "Rajesh", createdAt: new Date().toISOString() }
       ]);
       setLoading(false);
@@ -33,7 +33,7 @@ function History() {
     }
 
     try {
-      const res = await axios.get("/api/history");
+      const res = await api.get("/api/history");
       const data = res.data;
       setHistoryLogs(Array.isArray(data) ? data : []);
     } catch (err) {

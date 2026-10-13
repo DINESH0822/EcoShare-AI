@@ -6,13 +6,13 @@ const {
   updateOperationStatus,
   assignVolunteer
 } = require("../controllers/operationController");
-const { protect } = require("../middleware/authMiddleware");
+const { protect, authorize } = require("../middleware/authMiddleware");
 
 router.use(protect);
 
 router.get("/", getOperations);
 router.get("/:id", getOperationById);
 router.patch("/:id/status", updateOperationStatus);
-router.post("/:id/assign-volunteer", assignVolunteer);
+router.post("/:id/assign-volunteer", authorize("Admin"), assignVolunteer);
 
 module.exports = router;

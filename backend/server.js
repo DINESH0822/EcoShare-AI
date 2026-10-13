@@ -10,6 +10,7 @@ const http = require("http");
 const connectDB = require("./config/db");
 const { initSocket } = require("./socket");
 const { notFound, errorHandler } = require("./middleware/errorMiddleware");
+const { warmUpMlWorker, shutdownMlWorker } = require("./services/mlService");
 
 const userRoutes = require("./routes/userRoutes");
 const foodRoutes = require("./routes/foodRoutes");
@@ -93,4 +94,16 @@ const PORT = process.env.PORT || 5000;
 
 server.listen(PORT, () => {
   console.log(`EcoShare AI Server running on port ${PORT}`);
+  // Pre-load the Python claim-predictor worker so the first prediction is served
+  // by the real model instead of the deterministic fallback. Non-fatal if Python
+  // is unavailable; the service degrades gracefully.
+  warmUpMlWorker();
 });
+
+// Ensure the Python worker is stopped with the Node process.
+for (const signal of ["SIGINT", "SIGTERM"]) {
+  process.on(signal, () => {
+    shutdownMlWorker();
+    process.exit(0);
+  });
+}

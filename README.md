@@ -116,7 +116,7 @@ The repository includes Socket.IO integration for real-time updates and notifica
 
 ### EcoBot AI Assistant
 
-EcoBot is implemented as a product-facing assistant that helps users understand the platform. It supports:
+EcoBot is implemented as a product-facing assistant that helps users understand the platform. The backend combines intent classification, grounded project FAQs, and account-scoped queries using the authenticated role; it is not an LLM. It supports:
 
 - EcoShare AI overview
 - Donation management guidance
@@ -127,7 +127,7 @@ EcoBot is implemented as a product-facing assistant that helps users understand 
 - Admin and audit workflows
 - Navigation help
 
-When the backend is unavailable, the frontend includes a local fallback knowledge mode so the assistant continues to provide useful answers instead of repeatedly failing.
+When the backend is unavailable, the frontend shows a readable error and a retry action; it does not present fabricated live records.
 
 ### Analytics and Sustainability
 
@@ -268,10 +268,20 @@ The actual implementation includes a broader set of statuses defined in the dona
 
 ### AI / Matching Layer
 
-- Explainable scoring engine
-- Rule-based recommendation logic
-- Operational match reasoning
-- Priority computation for expiry and urgency
+- An explainable weighted rules engine filters active, verified/approved NGOs and ranks eligible candidates using food compatibility, refrigeration, distance or estimated route time, pickup radius, remaining capacity, expiry urgency, operating hours, emergency pickup, and recorded reliability.
+- Rules-based match scores and factor explanations are separate from the optional Python scikit-learn `RandomForestClassifier` claim-probability estimate.
+- The predictor artifact is trained by `backend/ml/train_claim_predictor.py` from 3,000 synthetic examples. Labels are sampled from a hand-written logistic formula, not historical rescue outcomes. Saved holdout metrics describe only that synthetic split and are not production or real-world performance evidence.
+- When Python inference or model loading is unavailable, a deterministic heuristic can be used by the matching service; the API marks it as a fallback, not an ML prediction.
+- Food-safety and role-authorization checks are independent of model scores. No prediction guarantees a claim, successful delivery, or safe food.
+
+To recreate the synthetic training artifact, install the packages listed in `backend/ml/requirements.txt` and run:
+
+```powershell
+cd backend
+python ml/train_claim_predictor.py
+```
+
+The generated metrics must be labeled synthetic-data evaluation. For deployment-quality evaluation, replace the synthetic generator with a governed, representative set of real claim outcomes and evaluate on a holdout separated by time or organization.
 
 ### Deployment / Hosting
 
@@ -342,8 +352,8 @@ These screens are protected or feature-gated according to the route logic in the
 
 The current frontend includes several layout and product design upgrades already implemented in the codebase, including:
 
-- Premium dark SaaS-style dashboard interface
-- Eco-focused brand palette with Emerald accents
+- Warm white, pale-green, and forest-green EcoShare theme
+- Eco-focused brand palette with readable text and Emerald accents
 - Improved typography and spacing hierarchy
 - Responsive dashboard cards and panels
 - Rescue activity timeline improvements
@@ -586,4 +596,3 @@ Project: EcoShare AI
 ## Summary
 
 EcoShare AI is a practical food rescue and redistribution platform that connects surplus food donors to verified organizations, volunteers, and rescue operations. The project is built as a full-stack JavaScript application with explainable AI matching, real-time notifications, analytics, and admin oversight, and it is designed to be presented as a credible internship AIML / full-stack product demonstration.
-

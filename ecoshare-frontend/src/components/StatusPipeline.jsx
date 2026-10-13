@@ -32,11 +32,11 @@ export default function StatusPipeline({ currentStatus = "published" }) {
   const activeIndex = getStepIndex(currentStatus);
 
   return (
-    <div className="w-full bg-[#101D2D] border border-slate-800/80 rounded-xl p-4">
-      <div className="flex items-center justify-between relative">
-        <div className="absolute top-1/2 left-6 right-6 h-0.5 bg-slate-800 -translate-y-1/2 z-0" />
-        <div 
-          className="absolute top-1/2 left-6 h-0.5 bg-blue-500 -translate-y-1/2 z-0 transition-all duration-300"
+    <div className="w-full rounded-xl border border-[var(--border)] bg-white/80 p-4 shadow-[var(--shadow)] backdrop-blur-sm">
+      <div className="relative flex min-w-0 items-start justify-between">
+        <div className="absolute left-6 right-6 top-1/2 z-0 h-0.5 -translate-y-1/2 bg-[var(--border)]" />
+        <div
+          className="absolute left-6 top-1/2 z-0 h-0.5 -translate-y-1/2 bg-[var(--primary)] transition-all duration-300"
           style={{ width: `${(activeIndex / (PIPELINE_STEPS.length - 1)) * 88}%` }}
         />
 
@@ -46,19 +46,19 @@ export default function StatusPipeline({ currentStatus = "published" }) {
           const Icon = step.icon;
 
           return (
-            <div key={step.key} className="flex flex-col items-center relative z-10">
-              <div 
-                className={`w-9 h-9 rounded-full flex items-center justify-center transition-all ${
-                  isCurrent 
-                    ? "bg-blue-600 text-white shadow-sm font-semibold" 
-                    : isDone 
-                    ? "bg-blue-500/20 text-blue-400 border border-blue-500/30" 
-                    : "bg-[#07111F] text-slate-500 border border-slate-800"
+            <div key={step.key} className="relative z-10 flex min-w-0 flex-1 flex-col items-center">
+              <div
+                className={`flex h-8 w-8 items-center justify-center rounded-full transition-all sm:h-9 sm:w-9 ${
+                  isCurrent
+                    ? "bg-[var(--primary)] text-white shadow-sm font-semibold"
+                    : isDone
+                    ? "border border-[var(--primary-soft)] bg-[var(--primary-soft)] text-[var(--primary)]"
+                    : "border border-[var(--border)] bg-[var(--surface-soft)] text-[var(--text-secondary)]"
                 }`}
               >
-                <Icon className="w-4 h-4" />
+                <Icon className="h-4 w-4" />
               </div>
-              <span className={`text-xs mt-2 font-medium ${isCurrent ? "text-blue-400 font-semibold" : isDone ? "text-slate-300" : "text-slate-500"}`}>
+              <span className={`mt-2 max-w-full text-center text-[10px] leading-tight font-medium sm:text-xs ${isCurrent ? "font-semibold text-[var(--primary)]" : isDone ? "text-[var(--text)]" : "text-[var(--text-secondary)]"}`}>
                 {step.label}
               </span>
             </div>
